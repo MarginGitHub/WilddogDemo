@@ -59,7 +59,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void syncUserData(String uid) {
-        SyncReference reference = WilddogSync.getInstance().getReference("users");
+        SyncReference reference = WilddogSync.getInstance().getReference("user");
         HashMap<String, Object> map = new HashMap();
         map.put(uid, true);
         reference.updateChildren(map);

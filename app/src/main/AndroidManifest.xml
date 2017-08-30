@@ -46,6 +46,8 @@
                 <action android:name="com.wilddog.wilddogauth.signoutsuccess" />
             </intent-filter>
         </receiver>
+
+        <service android:name=".ConversionService" android:enabled="true"/>
     </application>
 
 </manifest>

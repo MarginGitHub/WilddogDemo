@@ -4,21 +4,34 @@ import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.wilddog.client.ChildEventListener;
 import com.wilddog.client.DataSnapshot;
 import com.wilddog.client.SyncError;
 import com.wilddog.client.SyncReference;
-import com.wilddog.client.ValueEventListener;
 import com.wilddog.client.WilddogSync;
+import com.wilddog.video.CallStatus;
+import com.wilddog.video.Conversation;
+import com.wilddog.video.LocalStream;
+import com.wilddog.video.LocalStreamOptions;
+import com.wilddog.video.RemoteStream;
+import com.wilddog.video.WilddogVideo;
+import com.wilddog.video.WilddogVideoError;
+import com.wilddog.video.WilddogVideoView;
+import com.wilddog.video.core.stats.LocalStreamStatsReport;
+import com.wilddog.video.core.stats.RemoteStreamStatsReport;
 import com.wilddog.wilddogauth.WilddogAuth;
 
 import java.util.ArrayList;
@@ -28,14 +41,29 @@ import java.util.Map;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 
-public class UserListActivity extends AppCompatActivity {
+public class UserListActivity extends AppCompatActivity implements WilddogVideo.Listener,
+        Conversation.Listener, Conversation.StatsListener, ChildEventListener{
 
     @BindView(R.id.container_rl)
     RecyclerView mContainerRl;
+    @BindView(R.id.remote_view)
+    WilddogVideoView mRemoteView;
+    @BindView(R.id.local_view)
+    WilddogVideoView mLocalView;
+    @BindView(R.id.video_layout)
+    FrameLayout mVideoLayout;
+
     private UserListAdapter mAdapter;
     private List<String> mUserListData;
     private String mUid;
+
+
+    private WilddogVideo mWilddogVideo;
+    private Conversation mVideoConversation;
+    private LocalStream mLocalStream;
+    private RemoteStream mRemoteStream;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,10 +75,21 @@ public class UserListActivity extends AppCompatActivity {
 
         setupUserListListener();
 
-        setupCallStatesListener();
+//        initVideoConversation();
+        mWilddogVideo = WilddogVideo.getInstance();
+        mWilddogVideo.setListener(this);
 
     }
 
+    @Override
+    protected void onDestroy() {
+        WilddogSync.getInstance().getReference("user")
+                .child(WilddogAuth.getInstance().getCurrentUser().getUid()).removeValue();
+        mWilddogVideo.setListener(null);
+        super.onDestroy();
+    }
+
+    /******************************************************************************************************/
     private void setupContainer() {
         mUserListData = new ArrayList();
         mAdapter = new UserListAdapter(this);
@@ -63,157 +102,190 @@ public class UserListActivity extends AppCompatActivity {
 
     private void setupUserListListener() {
         mUid = getIntent().getStringExtra("uid");
-        SyncReference syncReference = WilddogSync.getInstance().getReference("users");
-        syncReference.addChildEventListener(new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                if (dataSnapshot != null) {
-                    String uid = dataSnapshot.getKey();
-                    if (!mUid.equals(uid)) {
-                        mUserListData.add(uid);
-                        mAdapter.notifyDataSetChanged();
-                    }
-                }
-            }
-
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-
-            }
-
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-                if (dataSnapshot != null) {
-                    String uid = dataSnapshot.getKey();
-                    if (!mUid.equals(uid)) {
-                        mUserListData.remove(uid);
-                        mAdapter.notifyDataSetChanged();
-                    }
-                }
-            }
-
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-            }
-
-            @Override
-            public void onCancelled(SyncError syncError) {
-
-            }
-        });
+        SyncReference syncReference = WilddogSync.getInstance().getReference("user");
+        syncReference.addChildEventListener(this);
     }
 
-    private void setupCallStatesListener() {
-        SyncReference states = WilddogSync.getInstance().getReference("state");
-        states.addChildEventListener(new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                String uid = dataSnapshot.getKey();
-                String currentUid = WilddogAuth.getInstance().getCurrentUser().getUid();
-                if (currentUid.equals(uid)) {
-                    Intent intent = new Intent(UserListActivity.this, MainActivity.class);
-                    startActivity(intent);
-                    resetCallState(currentUid);
-                }
-            }
 
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+    /**************************************************************************************/
+    private void initVideoConversation() {
 
-            }
-
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-
-            }
-
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-            }
-
-            @Override
-            public void onCancelled(SyncError syncError) {
-
-            }
-
-            private void resetCallState(String uid) {
-                SyncReference state = WilddogSync.getInstance().getReference("state");
-                state.child(uid).removeValue();
-                state.child(uid).onDisconnect().removeValue();
-            }
-        });
+        mLocalStream = mWilddogVideo.createLocalStream(
+                new LocalStreamOptions.Builder()
+                        .dimension(LocalStreamOptions.Dimension.DIMENSION_480P)
+                        .build());
+        mRemoteView.setZOrderMediaOverlay(true);
+        mLocalView.setVisibility(View.VISIBLE);
+        mLocalView.setZOrderOnTop(true);
+        mLocalView.setMirror(true);
     }
 
-    static class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.UserListViewHolder> {
-        private List<String> mData;
-        private Activity mContext;
 
-        public UserListAdapter(Activity context) {
-            mContext = context;
-        }
+    public void call(String remote_uid) {
+        initVideoConversation();
+        mVideoConversation = mWilddogVideo.call(remote_uid, mLocalStream, "");
+        mVideoConversation.setConversationListener(this);
+        mVideoConversation.setStatsListener(this);
 
-        public void setData(List<String> data) {
-            mData = data;
-            notifyDataSetChanged();
-        }
+    }
 
-        @Override
-        public UserListViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_user_list, parent, false);
-            return new UserListViewHolder(view, mContext);
-        }
+    @OnClick(R.id.hung_up)
+    public void onViewClicked() {
+       closeConversation();
+    }
 
-        @Override
-        public void onBindViewHolder(UserListViewHolder holder, int position) {
-            String uid = mData.get(position);
-            holder.setRemoteId(uid);
-        }
-
-        @Override
-        public int getItemCount() {
-            if (mData == null) {
-                return 0;
-            }
-            return mData.size();
-        }
-
-        static class UserListViewHolder extends RecyclerView.ViewHolder {
-            public TextView mRemoteIdTv;
-            public Button mCallBtn;
-            private String mRemoteId;
-
-            public UserListViewHolder(View itemView, final Activity context) {
-                super(itemView);
-                mRemoteIdTv = (TextView) itemView.findViewById(R.id.remote_id);
-                mCallBtn = (Button) itemView.findViewById(R.id.call_btn);
-                mCallBtn.setOnClickListener(new View.OnClickListener() {
+    /*************************************************************************************************************/
+    //Conversation.Listener
+    @Override
+    public void onCallResponse(CallStatus callStatus) {
+        switch (callStatus) {
+            case ACCEPTED:
+                break;
+            case REJECTED:
+                runOnUiThread(new Runnable() {
                     @Override
-                    public void onClick(View view) {
-                        setCallState(getRemoteId());
-                        Intent intent = new Intent(context, MainActivity.class);
-                        intent.putExtra("remote_id", getRemoteId());
-                        context.startActivity(intent);
+                    public void run() {
+                        Toast.makeText(UserListActivity.this, "对方拒绝了你的视频通话请求", Toast.LENGTH_SHORT).show();
                     }
-
-                    private void setCallState(String remoteID) {
-                        Map<String, Object> state = new HashMap();
-                        state.put(remoteID, true);
-                        WilddogSync.getInstance().getReference("state").updateChildren(state);
-                    }
-
                 });
-            }
+                break;
+            case BUSY:
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(UserListActivity.this, "对方正在通话中", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                break;
+            case TIMEOUT:
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(UserListActivity.this, "呼叫超时，请稍后再呼叫", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                break;
+            default:
+                break;
+        }
+    }
 
-            public void setRemoteId(String remoteId) {
-                mRemoteId = remoteId;
-                mRemoteIdTv.setText(mRemoteId);
-            }
+    @Override
+    public void onStreamReceived(RemoteStream remoteStream) {
+        mContainerRl.setVisibility(View.GONE);
+        mVideoLayout.setVisibility(View.VISIBLE);
+        mLocalStream.attach(mLocalView);
+        mRemoteStream = remoteStream;
+        mRemoteStream.attach(mRemoteView);
+    }
 
-            private String getRemoteId() {
-                return mRemoteId;
+    @Override
+    public void onClosed() {
+        closeConversation();
+    }
+
+    private void closeConversation() {
+        if (mVideoConversation != null) {
+            mVideoConversation.close();
+        }
+        mVideoConversation = null;
+        if (mRemoteStream != null) {
+            mRemoteStream.detach();
+        }
+        mLocalStream.detach();
+        mRemoteStream = null;
+        mLocalStream = null;
+        mLocalView.setVisibility(View.GONE);
+        mContainerRl.setVisibility(View.VISIBLE);
+        mVideoLayout.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void onError(WilddogVideoError wilddogVideoError) {
+
+    }
+
+    /************************************************************************************************************/
+    //Conversation.StatsListener
+    @Override
+    public void onLocalStreamStatsReport(LocalStreamStatsReport localStreamStatsReport) {
+
+    }
+
+    @Override
+    public void onRemoteStreamStatsReport(RemoteStreamStatsReport remoteStreamStatsReport) {
+
+    }
+
+    /**************************************************************************************************************/
+    //WilddogVideo.Listener
+    @Override
+    public void onCalled(final Conversation conversation, String s) {
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setMessage(String.format("用户%s邀请你进行视频通话", conversation.getRemoteUid()))
+                .setNegativeButton("拒绝", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        conversation.reject();
+                    }
+                })
+                .setPositiveButton("接受", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        initVideoConversation();
+                        mVideoConversation = conversation;
+                        mVideoConversation.accept(mLocalStream);
+                        mVideoConversation.setConversationListener(UserListActivity.this);
+                        mVideoConversation.setStatsListener(UserListActivity.this);
+                    }
+                })
+                .create();
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
+    }
+
+    @Override
+    public void onTokenError(WilddogVideoError wilddogVideoError) {
+
+    }
+
+
+    /************************************************************************************************************/
+    //ChildEventListener
+    @Override
+    public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+        if (dataSnapshot != null) {
+            String uid = dataSnapshot.getKey();
+            if (!mUid.equals(uid)) {
+                mUserListData.add(uid);
+                mAdapter.notifyDataSetChanged();
             }
         }
+    }
+
+    @Override
+    public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+    }
+
+    @Override
+    public void onChildRemoved(DataSnapshot dataSnapshot) {
+        if (dataSnapshot != null) {
+            String uid = dataSnapshot.getKey();
+            if (!mUid.equals(uid)) {
+                mUserListData.remove(uid);
+                mAdapter.notifyDataSetChanged();
+            }
+        }
+    }
+
+    @Override
+    public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+    }
+
+    @Override
+    public void onCancelled(SyncError syncError) {
+
     }
 }
