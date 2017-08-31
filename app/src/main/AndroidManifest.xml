@@ -38,8 +38,7 @@
         </activity>
         <activity android:name=".UserListActivity">
         </activity>
-        <activity android:name=".MainActivity">
-        </activity>
+
         <receiver android:name="com.wilddog.client.receiver.WilddogAuthCastReceiver">
             <intent-filter>
                 <action android:name="com.wilddog.wilddogauth.signinsuccess" />
@@ -47,7 +46,7 @@
             </intent-filter>
         </receiver>
 
-        <service android:name=".ConversionService" android:enabled="true"/>
+        <service android:name=".WilddogVideoService" android:enabled="true"/>
     </application>
 
 </manifest>
