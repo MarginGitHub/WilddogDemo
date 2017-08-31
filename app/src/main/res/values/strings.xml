@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">WildDogDemo</string>
-    <string name="app_id">wd8135265491ssgqrl</string>
-    <string name="video_app_id">wd7446579998mcgsxn</string>
-    <string name="sync_url">https://wd8135265491ssgqrl.wilddogio.com</string>
+    <string name="app_id">wd7068226413lqkhkx</string>
+    <string name="video_app_id">wd8362968907ehjajp</string>
+    <string name="sync_url">https://wd7068226413lqkhkx.wilddogio.com</string>
     <string name="title_activity_login">登录</string>
 
     <!-- Strings related to login -->
@@ -21,4 +21,5 @@
     <string name="call">呼叫</string>
     <string name="user_list">用户列表</string>
     <string name="sign_in">登录</string>
+    <string name="prompt_phone">电话</string>
 </resources>

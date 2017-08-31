@@ -59,7 +59,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.UserLi
             mCallBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    context.call(getRemoteId());
+                    context.callPeer(getRemoteId());
                 }
 
             });

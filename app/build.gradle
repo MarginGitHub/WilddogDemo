@@ -68,4 +68,16 @@ dependencies {
     compile 'com.jakewharton:butterknife:8.8.1'
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.8.1'
     testCompile 'junit:junit:4.12'
+
+    //    rxjava
+    compile 'io.reactivex.rxjava2:rxjava:2.1.0'
+//    rxandroid
+    compile 'io.reactivex.rxjava2:rxandroid:2.0.1'
+//    retrofit
+    compile 'com.squareup.retrofit2:retrofit:2.3.0'
+    compile 'com.squareup.retrofit2:converter-gson:2.3.0'
+//    compile 'com.squareup.retrofit2:adapter-rxjava:2.3.0'
+    compile "com.squareup.retrofit2:adapter-rxjava2:2.3.0"
+//    gson
+    compile 'com.google.code.gson:gson:2.8.1'
 }

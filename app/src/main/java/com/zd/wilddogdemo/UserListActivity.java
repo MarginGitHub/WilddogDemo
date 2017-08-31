@@ -1,9 +1,13 @@
 package com.zd.wilddogdemo;
 
 import android.app.Activity;
+import android.app.Service;
+import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -35,16 +39,14 @@ import com.wilddog.video.core.stats.RemoteStreamStatsReport;
 import com.wilddog.wilddogauth.WilddogAuth;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 public class UserListActivity extends AppCompatActivity implements WilddogVideo.Listener,
-        Conversation.Listener, Conversation.StatsListener, ChildEventListener{
+        Conversation.Listener, Conversation.StatsListener, ChildEventListener, ServiceConnection {
 
     @BindView(R.id.container_rl)
     RecyclerView mContainerRl;
@@ -60,10 +62,11 @@ public class UserListActivity extends AppCompatActivity implements WilddogVideo.
     private String mUid;
 
 
-    private WilddogVideo mWilddogVideo;
-    private Conversation mVideoConversation;
     private LocalStream mLocalStream;
     private RemoteStream mRemoteStream;
+    private WilddogVideoService.ConversionBinder mBinder;
+    private Conversation mVideoConversation;
+    private boolean isInVideoConversation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,23 +74,36 @@ public class UserListActivity extends AppCompatActivity implements WilddogVideo.
         setContentView(R.layout.activity_user_list);
         ButterKnife.bind(this);
 
+        mUid = getIntent().getStringExtra("uid");
         setupContainer();
-
-        setupUserListListener();
-
-//        initVideoConversation();
-        mWilddogVideo = WilddogVideo.getInstance();
-        mWilddogVideo.setListener(this);
+        setupUserListDataListener();
+        bindVideoService();
 
     }
 
     @Override
     protected void onDestroy() {
-        WilddogSync.getInstance().getReference("user")
-                .child(WilddogAuth.getInstance().getCurrentUser().getUid()).removeValue();
-        mWilddogVideo.setListener(null);
+//        WilddogSync.getInstance().getReference("userlist")
+//                .child(WilddogAuth.getInstance().getCurrentUser().getUid()).removeValue();
+//        WilddogVideo.getInstance().stop();
+//        WilddogAuth.getInstance().signOut();
+        unbindVideoService();
         super.onDestroy();
     }
+
+    private void bindVideoService() {
+        Intent intent = new Intent(this, WilddogVideoService.class);
+        bindService(intent, this, Service.BIND_AUTO_CREATE);
+    }
+
+    private void unbindVideoService() {
+        unbindService(this);
+    }
+
+    private boolean wakeupFromService() {
+        return getIntent().getBooleanExtra("wake_up", false);
+    }
+
 
     /******************************************************************************************************/
     private void setupContainer() {
@@ -100,38 +116,77 @@ public class UserListActivity extends AppCompatActivity implements WilddogVideo.
         mContainerRl.setLayoutManager(linearLayoutManager);
     }
 
-    private void setupUserListListener() {
+    private void setupUserListDataListener() {
         mUid = getIntent().getStringExtra("uid");
-        SyncReference syncReference = WilddogSync.getInstance().getReference("user");
+        SyncReference syncReference = WilddogSync.getInstance().getReference("userlist");
         syncReference.addChildEventListener(this);
     }
 
 
     /**************************************************************************************/
-    private void initVideoConversation() {
-
-        mLocalStream = mWilddogVideo.createLocalStream(
+    private void initLocalStream() {
+        mLocalStream = WilddogVideo.getInstance().createLocalStream(
                 new LocalStreamOptions.Builder()
                         .dimension(LocalStreamOptions.Dimension.DIMENSION_480P)
                         .build());
+    }
+
+    private void initVideoViews() {
+        mRemoteView.setVisibility(View.VISIBLE);
         mRemoteView.setZOrderMediaOverlay(true);
         mLocalView.setVisibility(View.VISIBLE);
         mLocalView.setZOrderOnTop(true);
         mLocalView.setMirror(true);
+
+//        将音视频流和View绑定
+        mLocalStream.attach(mLocalView);
+        mRemoteStream.attach(mRemoteView);
+        mLocalStream.enableAudio(true);
+        mRemoteStream.enableAudio(true);
+
+//       接收到对方音视频流以后先把用户列表list给GONE掉，然后让VideoLayout显示出来
+        mContainerRl.setVisibility(View.GONE);
+        mVideoLayout.setVisibility(View.VISIBLE);
+
     }
 
 
-    public void call(String remote_uid) {
-        initVideoConversation();
-        mVideoConversation = mWilddogVideo.call(remote_uid, mLocalStream, "");
+    public void callPeer(String remote_uid) {
+        if (mLocalStream == null) {
+            initLocalStream();
+        }
+        mVideoConversation = WilddogVideo.getInstance().call(remote_uid, mLocalStream, "");
         mVideoConversation.setConversationListener(this);
         mVideoConversation.setStatsListener(this);
 
     }
 
+    private void closeConversation() {
+        if (isInVideoConversation) {
+//            关闭会话
+            mVideoConversation.close();
+            mVideoConversation = null;
+//            将流和VideoView解绑
+            mRemoteStream.detach();
+            mRemoteStream = null;
+            mLocalStream.detach();
+            mLocalStream = null;
+//            设置View属性
+            mLocalView.setMirror(false);
+            mLocalView.setZOrderOnTop(false);
+            mLocalView.setVisibility(View.GONE);
+            mRemoteView.setZOrderMediaOverlay(false);
+            mRemoteView.setVisibility(View.GONE);
+            mVideoLayout.setVisibility(View.GONE);
+            mContainerRl.setVisibility(View.VISIBLE);
+
+            isInVideoConversation = false;
+        }
+    }
+
     @OnClick(R.id.hung_up)
     public void onViewClicked() {
-       closeConversation();
+        closeConversation();
     }
 
     /*************************************************************************************************************/
@@ -142,28 +197,13 @@ public class UserListActivity extends AppCompatActivity implements WilddogVideo.
             case ACCEPTED:
                 break;
             case REJECTED:
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(UserListActivity.this, "对方拒绝了你的视频通话请求", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                Toast.makeText(UserListActivity.this, "对方拒绝了你的视频通话请求", Toast.LENGTH_SHORT).show();
                 break;
             case BUSY:
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(UserListActivity.this, "对方正在通话中", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                Toast.makeText(UserListActivity.this, "对方正在通话中", Toast.LENGTH_SHORT).show();
                 break;
             case TIMEOUT:
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(UserListActivity.this, "呼叫超时，请稍后再呼叫", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                Toast.makeText(UserListActivity.this, "呼叫超时，请稍后再呼叫", Toast.LENGTH_SHORT).show();
                 break;
             default:
                 break;
@@ -172,11 +212,9 @@ public class UserListActivity extends AppCompatActivity implements WilddogVideo.
 
     @Override
     public void onStreamReceived(RemoteStream remoteStream) {
-        mContainerRl.setVisibility(View.GONE);
-        mVideoLayout.setVisibility(View.VISIBLE);
-        mLocalStream.attach(mLocalView);
         mRemoteStream = remoteStream;
-        mRemoteStream.attach(mRemoteView);
+        initVideoViews();
+        isInVideoConversation = true;
     }
 
     @Override
@@ -184,21 +222,6 @@ public class UserListActivity extends AppCompatActivity implements WilddogVideo.
         closeConversation();
     }
 
-    private void closeConversation() {
-        if (mVideoConversation != null) {
-            mVideoConversation.close();
-        }
-        mVideoConversation = null;
-        if (mRemoteStream != null) {
-            mRemoteStream.detach();
-        }
-        mLocalStream.detach();
-        mRemoteStream = null;
-        mLocalStream = null;
-        mLocalView.setVisibility(View.GONE);
-        mContainerRl.setVisibility(View.VISIBLE);
-        mVideoLayout.setVisibility(View.GONE);
-    }
 
     @Override
     public void onError(WilddogVideoError wilddogVideoError) {
@@ -232,7 +255,9 @@ public class UserListActivity extends AppCompatActivity implements WilddogVideo.
                 .setPositiveButton("接受", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        initVideoConversation();
+                        if (mLocalStream == null) {
+                            initLocalStream();
+                        }
                         mVideoConversation = conversation;
                         mVideoConversation.accept(mLocalStream);
                         mVideoConversation.setConversationListener(UserListActivity.this);
@@ -287,5 +312,24 @@ public class UserListActivity extends AppCompatActivity implements WilddogVideo.
     @Override
     public void onCancelled(SyncError syncError) {
 
+    }
+
+    /*****************************************************************************************************/
+    //ServiceConnection
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder binder) {
+        mBinder = (WilddogVideoService.ConversionBinder) binder;
+        mBinder.setVideoListener(this);
+        if (wakeupFromService()) {
+//            mVideoConversation = mBinder.getVideoConversation();
+//            mVideoConversation.setConversationListener(this);
+//            mVideoConversation.setStatsListener(this);
+            onCalled(mBinder.getVideoConversation(), "");
+        }
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        mBinder = null;
     }
 }

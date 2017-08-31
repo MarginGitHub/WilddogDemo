@@ -9,29 +9,31 @@ import android.support.annotation.Nullable;
 import com.wilddog.video.Conversation;
 import com.wilddog.video.WilddogVideo;
 import com.wilddog.video.WilddogVideoError;
-import com.wilddog.wilddogauth.WilddogAuth;
 
 /**
  * Created by dongjijin on 2017/8/30 0030.
  */
 
-public class ConversionService extends Service {
+public class WilddogVideoService extends Service {
 
-    private WilddogVideo mWilddogVideo;
     private WilddogVideo.Listener mListener;
+    private Conversation mVideoConversation;
+    private String mUid;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        initWilddogVideo();
-        mWilddogVideo.setListener(new WilddogVideo.Listener() {
+        WilddogVideo.getInstance().setListener(new WilddogVideo.Listener() {
             @Override
             public void onCalled(Conversation conversation, String s) {
                 if (mListener != null) {
                     mListener.onCalled(conversation, s);
                 } else {
+                    mVideoConversation = conversation;
                     Intent intent = new Intent(getApplicationContext(), UserListActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    intent.putExtra("uid", mUid);
+                    intent.putExtra("wake_up", true);
                     startActivity(intent);
                 }
             }
@@ -49,12 +51,16 @@ public class ConversionService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null) {
+            mUid = intent.getStringExtra("uid");
+        }
         return super.onStartCommand(intent, flags, startId);
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
         mListener = null;
+        mVideoConversation = null;
         return true;
     }
 
@@ -74,13 +80,10 @@ public class ConversionService extends Service {
         public void setVideoListener(WilddogVideo.Listener listener) {
             mListener = listener;
         }
+
+        public Conversation getVideoConversation() {
+            return mVideoConversation;
+        }
     }
 
-//
-
-    private void initWilddogVideo() {
-        String token = WilddogAuth.getInstance().getCurrentUser().getToken(false).getResult().getToken();
-        WilddogVideo.initialize(getApplicationContext(), getResources().getString(R.string.video_app_id), token);
-        mWilddogVideo = WilddogVideo.getInstance();
-    }
 }

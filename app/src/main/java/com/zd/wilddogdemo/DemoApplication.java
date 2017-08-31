@@ -2,6 +2,7 @@ package com.zd.wilddogdemo;
 
 import android.app.Application;
 
+import com.wilddog.wilddogauth.WilddogAuth;
 import com.wilddog.wilddogcore.WilddogApp;
 import com.wilddog.wilddogcore.WilddogOptions;
 
