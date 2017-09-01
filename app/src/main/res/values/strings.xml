@@ -3,6 +3,7 @@
     <string name="app_id">wd7068226413lqkhkx</string>
     <string name="video_app_id">wd8362968907ehjajp</string>
     <string name="sync_url">https://wd7068226413lqkhkx.wilddogio.com</string>
+    <string name="video_conversation_room">bird/online</string>
     <string name="title_activity_login">登录</string>
 
     <!-- Strings related to login -->

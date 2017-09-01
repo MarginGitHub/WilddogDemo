@@ -118,7 +118,7 @@ public class UserListActivity extends AppCompatActivity implements WilddogVideo.
 
     private void setupUserListDataListener() {
         mUid = getIntent().getStringExtra("uid");
-        SyncReference syncReference = WilddogSync.getInstance().getReference("userlist");
+        SyncReference syncReference = WilddogSync.getInstance().getReference(getResources().getString(R.string.video_conversation_room));
         syncReference.addChildEventListener(this);
     }
 

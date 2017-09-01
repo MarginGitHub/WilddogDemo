@@ -2,7 +2,10 @@ package com.zd.wilddogdemo;
 
 
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.Preference;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
@@ -39,13 +42,20 @@ public class LoginActivity extends AppCompatActivity {
 
     @BindView(R.id.phone)
     AutoCompleteTextView mPhone;
+    private String mPhoneNum;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         ButterKnife.bind(this);
+        mPhoneNum = getSharedPreferences(DemoApplication.class.getName(), MODE_PRIVATE).getString("phone", "");
+        if (!TextUtils.isEmpty(mPhoneNum)) {
+            mPhone.setText(mPhoneNum);
+        }
     }
+
+
 
 
     @OnClick(R.id.sign_in_button)
@@ -55,6 +65,12 @@ public class LoginActivity extends AppCompatActivity {
         if (TextUtils.isEmpty(phone)) {
             Toast.makeText(this, "电话号码不能为空", Toast.LENGTH_SHORT).show();
             return;
+        }
+        if (TextUtils.isEmpty(mPhoneNum) || !phone.equals(mPhoneNum)) {
+            getSharedPreferences(DemoApplication.class.getName(), MODE_PRIVATE)
+                    .edit()
+                    .putString("phone",phone)
+                    .apply();
         }
 
         NetService service = (NetService) NetServiceProvider.instance(this)
@@ -106,17 +122,20 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
-    private void wilddogLogin(String token) {
+    private void wilddogLogin(final String token) {
         WilddogAuth.getInstance(WilddogApp.getInstance()).signInWithCustomToken(token).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
             @Override
             public void onComplete(Task<AuthResult> authResultTask) {
                 if (authResultTask.isSuccessful()) {
                     WilddogUser wilddogUser = authResultTask.getResult().getWilddogUser();
                     String uid = wilddogUser.getUid();
-                    String wilddogToken = wilddogUser.getToken(false).getResult().getToken();
+//                    String wilddogToken = wilddogUser.getToken(false).getResult().getToken();
+                    getSharedPreferences(DemoApplication.class.getName(), MODE_PRIVATE)
+                            .edit()
+                            .putString("token", token)
+                            .apply();
                     syncUserData(uid);
-                    initWilddogVideo(wilddogToken);
-                    startVideoService(uid);
+                    startVideoService(uid, token);
 
                     Intent intent = new Intent(LoginActivity.this, UserListActivity.class);
                     intent.putExtra("uid", uid);
@@ -127,21 +146,22 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void syncUserData(String uid) {
-        SyncReference reference = WilddogSync.getInstance().getReference("userlist");
+        SyncReference reference = WilddogSync.getInstance().getReference(getResources().getString(R.string.video_conversation_room));
         HashMap<String, Object> map = new HashMap();
         map.put(uid, true);
         reference.updateChildren(map);
         reference.child(uid).onDisconnect().removeValue();
     }
 
-    private void initWilddogVideo(String token) {
-        WilddogVideo.initialize(getApplicationContext(), getResources().getString(R.string.video_app_id), token);
-        WilddogVideo.getInstance().start();
-    }
+//    private void initWilddogVideo(String token) {
+//        WilddogVideo.initialize(getApplicationContext(), getResources().getString(R.string.video_app_id), token);
+//        WilddogVideo.getInstance().start();
+//    }
 
-    private void startVideoService(String uid) {
+    private void startVideoService(String token, String uid) {
         Intent intent = new Intent(this, WilddogVideoService.class);
         intent.putExtra("uid", uid);
+        intent.putExtra("token", token);
         startService(intent);
     }
 }

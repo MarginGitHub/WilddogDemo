@@ -39,12 +39,15 @@
         <activity android:name=".UserListActivity">
         </activity>
 
+        <activity android:name=".KeppAliveActivity" android:theme="@style/keepAliveActivityStyle"/>
+
         <receiver android:name="com.wilddog.client.receiver.WilddogAuthCastReceiver">
             <intent-filter>
                 <action android:name="com.wilddog.wilddogauth.signinsuccess" />
                 <action android:name="com.wilddog.wilddogauth.signoutsuccess" />
             </intent-filter>
         </receiver>
+        <receiver android:name=".KeepAliveBroadcastReceiver" android:enabled="true" android:exported="true"/>
 
         <service android:name=".WilddogVideoService" android:enabled="true"/>
     </application>
