@@ -16,9 +16,9 @@ import java.util.List;
 
 public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.UserListViewHolder> {
     private List<String> mData;
-    private UserListActivity mContext;
+    private UserActivity mContext;
 
-    public UserListAdapter(UserListActivity context) {
+    public UserListAdapter(UserActivity context) {
         mContext = context;
     }
 
@@ -52,7 +52,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.UserLi
         public Button mCallBtn;
         private String mRemoteId;
 
-        public UserListViewHolder(View itemView, final UserListActivity context) {
+        public UserListViewHolder(View itemView, final UserActivity context) {
             super(itemView);
             mRemoteIdTv = (TextView) itemView.findViewById(R.id.remote_id);
             mCallBtn = (Button) itemView.findViewById(R.id.call_btn);

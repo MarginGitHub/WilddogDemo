@@ -29,11 +29,11 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
-import static android.os.Build.VERSION_CODES.M;
 
 public class MainActivity extends AppCompatActivity implements ServiceConnection, ChildEventListener {
 
 
+    private static final int REQUEST_CODE = 0xff;
     @BindView(R.id.container_rl)
     RecyclerView mContainerRl;
 
@@ -45,8 +45,12 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         @Override
         public boolean handleMessage(Message message) {
             if (message.what == VideoConversationCons.CALLED) {
+//                如果服务接收到Peer呼叫请求，那么在绑定情况下，先解绑服务，然后打开会话Activity
                 if (isBinded) {
                     unbindVideoService();
+                    Intent intent = new Intent(MainActivity.this, VideoConversationActivity.class);
+                    intent.putExtra("call", true);
+                    startActivityForResult(intent, REQUEST_CODE);
                 }
             }
             return true;
@@ -69,6 +73,17 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     protected void onDestroy() {
         unbindVideoService();
         super.onDestroy();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+//        主要处理从视频通话界面返回以后进行Video Conversation Service的绑定工作
+        if (requestCode == REQUEST_CODE) {
+            if (!isBinded) {
+                bindVideoService();
+            }
+        }
     }
 
     private void bindVideoService() {

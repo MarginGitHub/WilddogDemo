@@ -4,12 +4,29 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.zd.wilddogdemo.UserListActivity">
+    tools:context="com.zd.wilddogdemo.UserActivity">
 
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/container_rl"
+    <LinearLayout
+        android:id="@+id/doctor_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        <ImageView
+            android:id="@+id/head_iv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="80dp"
+            android:layout_gravity="center"
+            android:src="@mipmap/ic_launcher_round"/>
+        <TextView
+            android:id="@+id/doctor_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:layout_marginTop="50dp"
+            android:text="@string/doctor_info"/>
+    </LinearLayout>
     <FrameLayout
         android:id="@+id/video_layout"
         android:layout_width="match_parent"

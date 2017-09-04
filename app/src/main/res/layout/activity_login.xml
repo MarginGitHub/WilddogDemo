@@ -71,6 +71,14 @@
                 android:layout_marginTop="16dp"
                 android:text="@string/sign_in"
                 android:textStyle="bold"/>
+            <CheckBox
+                android:id="@+id/doctor_cb"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:checked="true"
+                android:text="医生"
+                />
 
         </LinearLayout>
     </ScrollView>

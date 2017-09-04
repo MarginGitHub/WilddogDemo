@@ -2,20 +2,17 @@ package com.zd.wilddogdemo;
 
 
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.Preference;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.AutoCompleteTextView;
+import android.widget.CheckBox;
 import android.widget.Toast;
 
 import com.wilddog.client.SyncReference;
 import com.wilddog.client.WilddogSync;
-import com.wilddog.video.WilddogVideo;
 import com.wilddog.wilddogauth.WilddogAuth;
 import com.wilddog.wilddogauth.core.Task;
 import com.wilddog.wilddogauth.core.listener.OnCompleteListener;
@@ -42,6 +39,8 @@ public class LoginActivity extends AppCompatActivity {
 
     @BindView(R.id.phone)
     AutoCompleteTextView mPhone;
+    @BindView(R.id.doctor_cb)
+    CheckBox mDoctorCb;
     private String mPhoneNum;
 
     @Override
@@ -56,73 +55,93 @@ public class LoginActivity extends AppCompatActivity {
     }
 
 
-
-
     @OnClick(R.id.sign_in_button)
     public void onViewClicked() {
+        final boolean isDoctor = mDoctorCb.isChecked();
+        WilddogAuth.getInstance().signInAnonymously().addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+            @Override
+            public void onComplete(Task<AuthResult> var1) {
+                if (var1.isSuccessful()) {
+                    String uid = var1.getResult().getWilddogUser().getUid();
+                    String token = var1.getResult().getWilddogUser().getToken(false).getResult().getToken();
+                    syncUserData(uid);
+                    startVideoService(uid, token, isDoctor);
 
-        String phone = mPhone.getText().toString().trim();
-        if (TextUtils.isEmpty(phone)) {
-            Toast.makeText(this, "电话号码不能为空", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (TextUtils.isEmpty(mPhoneNum) || !phone.equals(mPhoneNum)) {
-            getSharedPreferences(DemoApplication.class.getName(), MODE_PRIVATE)
-                    .edit()
-                    .putString("phone",phone)
-                    .apply();
-        }
-
-        NetService service = (NetService) NetServiceProvider.instance(this)
-                .provider(NetService.class, NetServiceConfig.SERVER_BASE_URL);
-        String ts = String.valueOf(System.currentTimeMillis() / 1000);
-        String apiKey = "test";
-        String mobile = phone;
-        String password = "12345678";
-        int flag = 1;
-        String sign = Util.sign(ts, apiKey, mobile, password, flag);
-        service.login(ts, apiKey, sign, mobile, password, flag)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<Result<LoginInfo>>() {
-                    @Override
-                    public void onSubscribe(@NonNull Disposable d) {
-
+                    Intent intent;
+                    if (isDoctor) {
+                        intent = new Intent(LoginActivity.this, DoctorActivity.class);
+                    } else {
+                        intent = new Intent(LoginActivity.this, UserActivity.class);
                     }
+                    intent.putExtra("local_uid", uid);
+                    startActivity(intent);
+                }
+            }
+        });
 
-                    @Override
-                    public void onNext(@NonNull Result<LoginInfo> loginInfoResult) {
-                        switch (loginInfoResult.getCode()) {
-                            case 100:
-                                LoginInfo loginInfo = loginInfoResult.getData();
-                                Log.d("login", loginInfo.toString());
-                                String token = loginInfo.getWilddog_token();
-
-                                wilddogLogin(token);
-
-                                break;
-                            case 101:
-                                Log.d("login", loginInfoResult.getMsg());
-                                break;
-                            default:
-                                Log.d("login", loginInfoResult.toString());
-                                break;
-                        }
-                    }
-
-                    @Override
-                    public void onError(@NonNull Throwable e) {
-                        Toast.makeText(LoginActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onComplete() {
-
-                    }
-                });
+//        final boolean isDoctor = mDoctorCb.isChecked();
+//        String phone = mPhone.getText().toString().trim();
+//        if (TextUtils.isEmpty(phone)) {
+//            Toast.makeText(this, "电话号码不能为空", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
+//        if (TextUtils.isEmpty(mPhoneNum) || !phone.equals(mPhoneNum)) {
+//            getSharedPreferences(DemoApplication.class.getName(), MODE_PRIVATE)
+//                    .edit()
+//                    .putString("phone", phone)
+//                    .apply();
+//        }
+//
+//        NetService service = (NetService) NetServiceProvider.instance(this)
+//                .provider(NetService.class, NetServiceConfig.SERVER_BASE_URL);
+//        String ts = String.valueOf(System.currentTimeMillis() / 1000);
+//        String apiKey = "test";
+//        String mobile = phone;
+//        String password = "12345678";
+//        int flag = 1;
+//        String sign = Util.sign(ts, apiKey, mobile, password, flag);
+//        service.login(ts, apiKey, sign, mobile, password, flag)
+//                .subscribeOn(Schedulers.io())
+//                .observeOn(AndroidSchedulers.mainThread())
+//                .subscribe(new Observer<Result<LoginInfo>>() {
+//                    @Override
+//                    public void onSubscribe(@NonNull Disposable d) {
+//
+//                    }
+//
+//                    @Override
+//                    public void onNext(@NonNull Result<LoginInfo> loginInfoResult) {
+//                        switch (loginInfoResult.getCode()) {
+//                            case 100:
+//                                LoginInfo loginInfo = loginInfoResult.getData();
+//                                Log.d("login", loginInfo.toString());
+//                                String token = loginInfo.getWilddog_token();
+//
+//                                wilddogLogin(token, isDoctor);
+//
+//                                break;
+//                            case 101:
+//                                Log.d("login", loginInfoResult.getMsg());
+//                                break;
+//                            default:
+//                                Log.d("login", loginInfoResult.toString());
+//                                break;
+//                        }
+//                    }
+//
+//                    @Override
+//                    public void onError(@NonNull Throwable e) {
+//                        Toast.makeText(LoginActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+//                    }
+//
+//                    @Override
+//                    public void onComplete() {
+//
+//                    }
+//                });
     }
 
-    private void wilddogLogin(final String token) {
+    private void wilddogLogin(final String token, final boolean isDoctor) {
         WilddogAuth.getInstance(WilddogApp.getInstance()).signInWithCustomToken(token).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
             @Override
             public void onComplete(Task<AuthResult> authResultTask) {
@@ -135,10 +154,15 @@ public class LoginActivity extends AppCompatActivity {
                             .putString("token", token)
                             .apply();
                     syncUserData(uid);
-                    startVideoService(uid, token);
+                    startVideoService(uid, token, isDoctor);
 
-                    Intent intent = new Intent(LoginActivity.this, UserListActivity.class);
-                    intent.putExtra("uid", uid);
+                    Intent intent;
+                    if (isDoctor) {
+                        intent = new Intent(LoginActivity.this, DoctorActivity.class);
+                    } else {
+                        intent = new Intent(LoginActivity.this, UserActivity.class);
+                    }
+                    intent.putExtra("local_uid", uid);
                     startActivity(intent);
                 }
             }
@@ -158,10 +182,11 @@ public class LoginActivity extends AppCompatActivity {
 //        WilddogVideo.getInstance().start();
 //    }
 
-    private void startVideoService(String token, String uid) {
+    private void startVideoService(String uid, String token, boolean isDoctor) {
         Intent intent = new Intent(this, WilddogVideoService.class);
-        intent.putExtra("uid", uid);
+        intent.putExtra("local_uid", uid);
         intent.putExtra("token", token);
+        intent.putExtra("is_doctor", isDoctor);
         startService(intent);
     }
 }

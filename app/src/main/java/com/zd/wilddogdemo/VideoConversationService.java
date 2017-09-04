@@ -11,17 +11,21 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
 
+import com.wilddog.video.CallStatus;
 import com.wilddog.video.Conversation;
 import com.wilddog.video.LocalStream;
+import com.wilddog.video.LocalStreamOptions;
 import com.wilddog.video.RemoteStream;
 import com.wilddog.video.WilddogVideo;
 import com.wilddog.video.WilddogVideoError;
+import com.wilddog.video.core.stats.LocalStreamStatsReport;
+import com.wilddog.video.core.stats.RemoteStreamStatsReport;
 
 /**
  * Created by dongjijin on 2017/8/30 0030.
  */
 
-public class VideoConversationService extends Service {
+public class VideoConversationService extends Service implements Conversation.Listener, Conversation.StatsListener {
 
     private KeepAliveBroadcastReceiver mReceiver;
 
@@ -36,6 +40,8 @@ public class VideoConversationService extends Service {
         public boolean handleMessage(Message message) {
             switch (message.what) {
                 case VideoConversationCons.CALL:
+                    String remoteUID = (String) message.obj;
+                    callPeer(remoteUID);
                     break;
                 case VideoConversationCons.CALLED:
                     break;
@@ -46,6 +52,16 @@ public class VideoConversationService extends Service {
             return true;
         }
     }));
+
+    private void callPeer(String remoteUID) {
+        LocalStreamOptions options = new LocalStreamOptions.Builder()
+                .dimension(LocalStreamOptions.Dimension.DIMENSION_480P)
+                .build();
+        mLocalStream = WilddogVideo.getInstance().createLocalStream(options);
+        mConversation = WilddogVideo.getInstance().call(remoteUID,mLocalStream, "");
+        mConversation.setConversationListener(this);
+        mConversation.setStatsListener(this);
+    }
 
     @Override
     public void onCreate() {
@@ -93,6 +109,7 @@ public class VideoConversationService extends Service {
         WilddogVideo.getInstance().setListener(new WilddogVideo.Listener() {
             @Override
             public void onCalled(Conversation conversation, String s) {
+                mConversation = conversation;
                 if (isBinded) {
 //                    如果绑定了 说明在Main页面
                     Message message = Message.obtain();
@@ -128,4 +145,56 @@ public class VideoConversationService extends Service {
     }
 
 
+    /************************************************************************************************/
+    @Override
+    public void onCallResponse(CallStatus callStatus) {
+        Message message = Message.obtain();
+        switch (callStatus) {
+            case ACCEPTED:
+                message.what = VideoConversationCons.ACCEPTED;
+                break;
+            case REJECTED:
+                message.what = VideoConversationCons.REJECTED;
+                break;
+            case TIMEOUT:
+                message.what = VideoConversationCons.TIMEOUT;
+                break;
+            case BUSY:
+                message.what = VideoConversationCons.BUSY;
+                break;
+            default:
+                break;
+        }
+        try {
+            mClientMessenger.send(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onStreamReceived(RemoteStream remoteStream) {
+
+    }
+
+    @Override
+    public void onClosed() {
+
+    }
+
+    @Override
+    public void onError(WilddogVideoError wilddogVideoError) {
+
+    }
+
+    /*********************************************************************************************/
+    @Override
+    public void onLocalStreamStatsReport(LocalStreamStatsReport localStreamStatsReport) {
+
+    }
+
+    @Override
+    public void onRemoteStreamStatsReport(RemoteStreamStatsReport remoteStreamStatsReport) {
+
+    }
 }

@@ -80,4 +80,8 @@ dependencies {
     compile "com.squareup.retrofit2:adapter-rxjava2:2.3.0"
 //    gson
     compile 'com.google.code.gson:gson:2.8.1'
+
+
+
+    compile 'com.qmuiteam:qmui:1.0.0'
 }
