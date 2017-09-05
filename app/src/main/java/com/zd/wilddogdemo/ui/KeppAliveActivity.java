@@ -1,4 +1,4 @@
-package com.zd.wilddogdemo;
+package com.zd.wilddogdemo.ui;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

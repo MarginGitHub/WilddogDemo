@@ -4,12 +4,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.zd.wilddogdemo.UserActivity">
+    tools:context="com.zd.wilddogdemo.ui.UserActivity">
 
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/container_rl"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+    <!--<me.dkzwm.widget.srl.SmoothRefreshLayout-->
+        <!--android:id="@+id/refreshlayout"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="match_parent">-->
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/container_rl"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+    <!--</me.dkzwm.widget.srl.SmoothRefreshLayout>-->
     <FrameLayout
         android:id="@+id/video_layout"
         android:layout_width="match_parent"

@@ -1,9 +1,11 @@
-package com.zd.wilddogdemo;
+package com.zd.wilddogdemo.broadreceiver;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
+
+import com.zd.wilddogdemo.ui.KeppAliveActivity;
 
 /**
  * Created by dongjijin on 2017/9/1 0001.

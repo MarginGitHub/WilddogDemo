@@ -1,4 +1,4 @@
-package com.zd.wilddogdemo;
+package com.zd.wilddogdemo.net;
 
 import android.content.Context;
 

@@ -1,4 +1,4 @@
-package com.zd.wilddogdemo;
+package com.zd.wilddogdemo.beans;
 
 /**
  * Created by dongjijin on 2017/8/31 0031.

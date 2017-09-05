@@ -1,4 +1,4 @@
-package com.zd.wilddogdemo;
+package com.zd.wilddogdemo.cons;
 
 /**
  * Created by dongjijin on 2017/9/1 0001.

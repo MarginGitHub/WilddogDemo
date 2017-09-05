@@ -1,4 +1,4 @@
-package com.zd.wilddogdemo;
+package com.zd.wilddogdemo.service;
 
 import android.app.Service;
 import android.content.Intent;
@@ -18,6 +18,13 @@ import com.wilddog.video.LocalStreamOptions;
 import com.wilddog.video.RemoteStream;
 import com.wilddog.video.WilddogVideo;
 import com.wilddog.video.WilddogVideoError;
+import com.zd.wilddogdemo.R;
+import com.zd.wilddogdemo.beans.User;
+import com.zd.wilddogdemo.broadreceiver.KeepAliveBroadcastReceiver;
+import com.zd.wilddogdemo.cons.ConversationCons;
+import com.zd.wilddogdemo.ui.DoctorActivity;
+import com.zd.wilddogdemo.ui.UserActivity;
+
 
 /**
  * Created by dongjijin on 2017/8/30 0030.
@@ -27,7 +34,6 @@ public class WilddogVideoService extends Service implements Conversation.Listene
 
     private static final String TAG = "WilddogVideoService";
     private Conversation mVideoConversation;
-    private String mUid;
     private KeepAliveBroadcastReceiver mReceiver;
     private WilddogVideo mWilddogVideo;
     private LocalStream mLocalStream;
@@ -69,7 +75,7 @@ public class WilddogVideoService extends Service implements Conversation.Listene
     private Messenger mClientMessenger;
     private boolean isBinded = false;
     private boolean onCall = false;
-    private boolean isDoctor;
+    private User mUser;
 
 
     @Override
@@ -81,16 +87,15 @@ public class WilddogVideoService extends Service implements Conversation.Listene
     @Override
     public void onDestroy() {
         stopKeepAliveBroadcastReceiver();
-        WilddogVideo.getInstance().stop();
+        mWilddogVideo.stop();
         super.onDestroy();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
-            mUid = intent.getStringExtra("local_uid");
-            isDoctor = intent.getBooleanExtra("is_doctor", false);
-            initWilddogVideo(intent.getStringExtra("token"));
+            mUser = (User) intent.getSerializableExtra("user");
+            initWilddogVideo(mUser.getToken());
         }
         return START_STICKY;
     }
@@ -116,7 +121,8 @@ public class WilddogVideoService extends Service implements Conversation.Listene
 
 
     private void initWilddogVideo(String token) {
-        WilddogVideo.initialize(getApplicationContext(), getResources().getString(R.string.video_app_id), token);
+        String videoAppID = getResources().getString(R.string.video_app_id);
+        WilddogVideo.initialize(getApplicationContext(), videoAppID, token);
         mWilddogVideo = WilddogVideo.getInstance();
         mWilddogVideo.setListener(new WilddogVideo.Listener() {
             @Override
@@ -135,15 +141,13 @@ public class WilddogVideoService extends Service implements Conversation.Listene
                     }
                 } else {
                     Intent intent;
-                    if (isDoctor) {
+                    if (mUser.isDoctor()) {
                         intent = new Intent(getApplicationContext(), DoctorActivity.class);
                     } else {
                         intent = new Intent(getApplicationContext(), UserActivity.class);
                     }
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    intent.putExtra("local_uid", mUid);
-                    intent.putExtra("remote_uid", s);
-                    intent.putExtra("wake_up", true);
+                    intent.putExtra("user", mUser);
                     startActivity(intent);
                 }
             }
@@ -178,7 +182,7 @@ public class WilddogVideoService extends Service implements Conversation.Listene
 
     private void callPeer(String remoteUid) {
         createLocalStream();
-        mVideoConversation = mWilddogVideo.call(remoteUid, mLocalStream, remoteUid);
+        mVideoConversation = mWilddogVideo.call(remoteUid, mLocalStream, mUser.getUid());
         mVideoConversation.setConversationListener(this);
     }
 
@@ -253,9 +257,9 @@ public class WilddogVideoService extends Service implements Conversation.Listene
         Log.d(TAG, "onError: " + message);
     }
 
-    class VideoStream {
-        LocalStream mLocalStream;
-        RemoteStream mRemoteStream;
+    public class VideoStream {
+        public LocalStream mLocalStream;
+        public RemoteStream mRemoteStream;
 
         public VideoStream(LocalStream localStream, RemoteStream remoteStream) {
             mLocalStream = localStream;

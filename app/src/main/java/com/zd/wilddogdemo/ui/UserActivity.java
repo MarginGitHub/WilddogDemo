@@ -1,4 +1,4 @@
-package com.zd.wilddogdemo;
+package com.zd.wilddogdemo.ui;
 
 import android.app.Service;
 import android.content.ComponentName;
@@ -11,29 +11,50 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
 import com.wilddog.client.ChildEventListener;
 import com.wilddog.client.DataSnapshot;
+import com.wilddog.client.GenericTypeIndicator;
 import com.wilddog.client.SyncError;
 import com.wilddog.client.SyncReference;
 import com.wilddog.client.WilddogSync;
 import com.wilddog.video.WilddogVideoView;
 import com.wilddog.wilddogauth.WilddogAuth;
+import com.zd.wilddogdemo.R;
+import com.zd.wilddogdemo.adapter.DoctorListAdapter;
+import com.zd.wilddogdemo.beans.Doctor;
+import com.zd.wilddogdemo.beans.Result;
+import com.zd.wilddogdemo.beans.User;
+import com.zd.wilddogdemo.cons.ConversationCons;
+import com.zd.wilddogdemo.net.NetService;
+import com.zd.wilddogdemo.net.NetServiceConfig;
+import com.zd.wilddogdemo.net.NetServiceProvider;
+import com.zd.wilddogdemo.service.WilddogVideoService;
+import com.zd.wilddogdemo.utils.Util;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import io.reactivex.Observer;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 
 public class UserActivity extends AppCompatActivity implements ChildEventListener, ServiceConnection {
 
@@ -45,12 +66,17 @@ public class UserActivity extends AppCompatActivity implements ChildEventListene
     WilddogVideoView mLocalView;
     @BindView(R.id.video_layout)
     FrameLayout mVideoLayout;
+//    @BindView(R.id.refreshlayout)
+//    SmoothRefreshLayout mRefreshlayout;
 
-    private UserListAdapter mAdapter;
-    private List<String> mUserListData;
+    private DoctorListAdapter mAdapter;
+    private List<Doctor> mDoctorListData;
+    private List<Doctor> mOnlineDoctorListData;
     private Messenger mServerMessenger;
     private String mLocalUid;
     private boolean isBinded;
+    private NetService mNetService;
+    private User mUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,8 +84,12 @@ public class UserActivity extends AppCompatActivity implements ChildEventListene
         setContentView(R.layout.activity_user);
         ButterKnife.bind(this);
 
+        mUser = (User) getIntent().getSerializableExtra("user");
+
+        getDoctorList();
         setupContainer();
-        setupUserListDataListener();
+//        setupUserListDataListener();
+        setupRefreshLayout();
         bindVideoService();
 
     }
@@ -77,8 +107,55 @@ public class UserActivity extends AppCompatActivity implements ChildEventListene
         super.onDestroy();
     }
 
-    private boolean isDoctor() {
-        return getIntent().getBooleanExtra("is_doctor", false);
+    private void setupRefreshLayout() {
+    }
+
+    private void getDoctorList() {
+        mNetService = (NetService) NetServiceProvider.instance(this)
+                .provider(NetService.class, NetServiceConfig.SERVER_BASE_URL);
+
+        String ts = String.valueOf(System.currentTimeMillis() / 1000);
+        String apiKey = "test";
+        String userId = mUser.getUid();
+        int start = 0;
+        int count = 100;
+
+        HashMap<String, String> params = new HashMap<>();
+        params.put("ts", ts);
+        params.put("apiKey", apiKey);
+        params.put("userId", userId);
+        params.put("start", String.valueOf(start));
+        params.put("count", String.valueOf(count));
+        String sign = Util.sign(params);
+        mNetService.getDoctorList(ts, apiKey, sign, userId, start, count)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<Result<List<Doctor>>>() {
+                    public static final String TAG = "getDoctorList";
+
+                    @Override
+                    public void onSubscribe(@io.reactivex.annotations.NonNull Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(@io.reactivex.annotations.NonNull Result<List<Doctor>> listResult) {
+                        if (listResult.getCode() == 100) {
+                            mDoctorListData = listResult.getData();
+                            setupUserListDataListener();
+                        }
+                    }
+
+                    @Override
+                    public void onError(@io.reactivex.annotations.NonNull Throwable e) {
+                        Log.e(TAG, "onError: " + e.toString());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        Log.d(TAG, "onComplete: ");
+                    }
+                });
     }
 
     private void bindVideoService() {
@@ -103,10 +180,10 @@ public class UserActivity extends AppCompatActivity implements ChildEventListene
 
     /******************************************************************************************************/
     private void setupContainer() {
-        mUserListData = new ArrayList();
-        mAdapter = new UserListAdapter(this);
+        mOnlineDoctorListData = new ArrayList<>();
+        mAdapter = new DoctorListAdapter(this);
         mContainerRl.setAdapter(mAdapter);
-        mAdapter.setData(mUserListData);
+        mAdapter.setData(mOnlineDoctorListData);
 
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
         mContainerRl.setLayoutManager(linearLayoutManager);
@@ -114,10 +191,8 @@ public class UserActivity extends AppCompatActivity implements ChildEventListene
 
     private void setupUserListDataListener() {
         mLocalUid = WilddogAuth.getInstance().getCurrentUser().getUid();
-//        SyncReference syncReference = WilddogSync.getInstance()
-//                .getReference(getResources().getString(R.string.video_conversation_room));
         SyncReference syncReference = WilddogSync.getInstance()
-                .getReference("online");
+                .getReference(getResources().getString(R.string.doctors_room));
         syncReference.addChildEventListener(this);
     }
 
@@ -135,15 +210,26 @@ public class UserActivity extends AppCompatActivity implements ChildEventListene
 
     }
 
-    public void callPeer(String remoteUid) {
-        Message msg = Message.obtain();
-        msg.what = ConversationCons.RING_UP;
-        msg.obj = remoteUid;
-        try {
-            mServerMessenger.send(msg);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+    public void callPeer(final String remoteUid) {
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setMessage(String.format("确认呼叫%s", remoteUid))
+                .setNegativeButton("取消", null)
+                .setPositiveButton("呼叫", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        Message msg = Message.obtain();
+                        msg.what = ConversationCons.RING_UP;
+                        msg.obj = remoteUid;
+                        try {
+                            mServerMessenger.send(msg);
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                })
+                .create();
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
     }
 
 
@@ -178,10 +264,16 @@ public class UserActivity extends AppCompatActivity implements ChildEventListene
     public void onChildAdded(DataSnapshot dataSnapshot, String s) {
         if (dataSnapshot != null) {
             String uid = dataSnapshot.getKey();
-            if (!mLocalUid.equals(uid)) {
-                mUserListData.add(uid);
-                mAdapter.notifyDataSetChanged();
+            for (Doctor doctor: mDoctorListData) {
+                if (doctor.getUser_id().equals(uid)) {
+                    mOnlineDoctorListData.add(doctor);
+                    break;
+                }
             }
+//            Doctor doctor = mDoctorListData.get(0);
+//            doctor.setUser_id(uid);
+//            mOnlineDoctorListData.add(doctor);
+            mAdapter.notifyDataSetChanged();
         }
     }
 
@@ -194,10 +286,13 @@ public class UserActivity extends AppCompatActivity implements ChildEventListene
     public void onChildRemoved(DataSnapshot dataSnapshot) {
         if (dataSnapshot != null) {
             String uid = dataSnapshot.getKey();
-            if (!mLocalUid.equals(uid)) {
-                mUserListData.remove(uid);
-                mAdapter.notifyDataSetChanged();
+            for (Doctor doctor: mDoctorListData) {
+                if (doctor.getUser_id().equals(uid)) {
+                    mOnlineDoctorListData.remove(doctor);
+                    break;
+                }
             }
+            mAdapter.notifyDataSetChanged();
         }
     }
 

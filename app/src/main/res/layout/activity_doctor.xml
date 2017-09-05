@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.zd.wilddogdemo.UserActivity">
+    tools:context="com.zd.wilddogdemo.ui.UserActivity">
 
     <LinearLayout
         android:id="@+id/doctor_container"

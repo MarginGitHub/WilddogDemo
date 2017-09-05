@@ -1,4 +1,4 @@
-package com.zd.wilddogdemo;
+package com.zd.wilddogdemo.ui;
 
 import android.app.Service;
 import android.content.ComponentName;
@@ -22,6 +22,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.wilddog.video.WilddogVideoView;
+import com.zd.wilddogdemo.R;
+import com.zd.wilddogdemo.service.WilddogVideoService;
+import com.zd.wilddogdemo.cons.ConversationCons;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;

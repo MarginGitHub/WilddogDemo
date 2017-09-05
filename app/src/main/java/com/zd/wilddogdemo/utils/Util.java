@@ -1,4 +1,4 @@
-package com.zd.wilddogdemo;
+package com.zd.wilddogdemo.utils;
 
 
 import java.security.MessageDigest;
@@ -9,6 +9,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static android.R.attr.data;
 
 
 /**
@@ -33,14 +35,29 @@ public class Util {
         }
         return "";
     }
-    public static String sign(String ts, String apiKey, String mobile, String password, int flag) {
-        Map<String, String> data = new HashMap<>();
-        data.put("ts", ts);
-        data.put("apiKey", apiKey);
-        data.put("mobile", mobile);
-        data.put("password", password);
-        data.put("flag", flag + "");
-        List<Map.Entry<String, String>> list = new ArrayList<>(data.entrySet());
+//    public static String sign(String ts, String apiKey, String mobile, String password, int flag) {
+//        Map<String, String> data = new HashMap<>();
+//        data.put("ts", ts);
+//        data.put("apiKey", apiKey);
+//        data.put("mobile", mobile);
+//        data.put("password", password);
+//        data.put("flag", flag + "");
+//        List<Map.Entry<String, String>> list = new ArrayList<>(data.entrySet());
+//        Collections.sort(list, new Comparator<Map.Entry<String, String>>() {
+//            @Override
+//            public int compare(Map.Entry<String, String> o1, Map.Entry<String, String> o2) {
+//                return o1.getKey().compareTo(o2.getKey());
+//            }
+//        });
+//        StringBuilder builder = new StringBuilder();
+//        for(Map.Entry<String, String> entry : list) {
+//            builder.append(entry.getValue());
+//        }
+//        return md5(builder.toString());
+//    }
+
+    public static String sign(Map<String, String> params) {
+        List<Map.Entry<String, String>> list = new ArrayList<>(params.entrySet());
         Collections.sort(list, new Comparator<Map.Entry<String, String>>() {
             @Override
             public int compare(Map.Entry<String, String> o1, Map.Entry<String, String> o2) {

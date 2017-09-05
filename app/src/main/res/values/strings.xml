@@ -1,30 +1,19 @@
 <resources>
     <string name="app_name">WildDogDemo</string>
-    <!--<string name="app_id">wd7068226413lqkhkx</string>-->
-    <!--<string name="video_app_id">wd8362968907ehjajp</string>-->
-    <!--<string name="sync_url">https://wd7068226413lqkhkx.wilddogio.com</string>-->
-    <string name="app_id">wd8135265491ssgqrl</string>
-    <string name="video_app_id">wd7446579998mcgsxn</string>
-    <string name="sync_url">https://wd8135265491ssgqrl.wilddogio.com</string>
-    <string name="video_conversation_room">patient</string>
+    <string name="app_id">wd7068226413lqkhkx</string>
+    <string name="video_app_id">wd8362968907ehjajp</string>
+    <string name="sync_url">https://wd7068226413lqkhkx.wilddogio.com</string>
+    <!--<string name="app_id">wd8135265491ssgqrl</string>-->
+    <!--<string name="video_app_id">wd7446579998mcgsxn</string>-->
+    <!--<string name="sync_url">https://wd8135265491ssgqrl.wilddogio.com</string>-->
     <string name="title_activity_login">登录</string>
 
-    <!-- Strings related to login -->
-    <string name="prompt_email">Email</string>
-    <string name="prompt_password">Password (optional)</string>
-    <string name="action_sign_in">Sign in or register</string>
-    <string name="action_sign_in_short">Sign in</string>
-    <string name="error_invalid_email">This email address is invalid</string>
-    <string name="error_invalid_password">This password is too short</string>
-    <string name="error_incorrect_password">This password is incorrect</string>
-    <string name="error_field_required">This field is required</string>
-    <string name="permission_rationale">"Contacts permissions are needed for providing email
-        completions."
-    </string>
     <string name="anonymous_sign_in">匿名登录</string>
     <string name="call">呼叫</string>
     <string name="user_list">用户列表</string>
     <string name="sign_in">登录</string>
     <string name="prompt_phone">电话</string>
     <string name="doctor_info">刘晓红，消化内科教授、主任医师，医学博士、理学博士，博士导师，老年示范病房主任。1982年毕业于北京医科大学医疗系，1982年毕业于北京医科大学，1990年北京医科大学第三医院消化科获医学博士学位，1995年日本九州大学医学部获医学理学博士学位（Ph.D）。2011年赴美国约翰霍普金斯老年医学科学习3个月。</string>
+    <string name="doctors_room">doctors</string>
+    <string name="users_room">users</string>
 </resources>

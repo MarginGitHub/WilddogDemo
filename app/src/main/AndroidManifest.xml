@@ -29,18 +29,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".LoginActivity">
+        <activity android:name=".ui.LoginActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".UserActivity">
+        <activity android:name=".ui.UserActivity">
         </activity>
-        <activity android:name=".DoctorActivity"/>
+        <activity android:name=".ui.DoctorActivity"/>
 
-        <activity android:name=".KeppAliveActivity" android:theme="@style/keepAliveActivityStyle"/>
+        <activity android:name=".ui.KeppAliveActivity" android:theme="@style/keepAliveActivityStyle"/>
 
         <receiver android:name="com.wilddog.client.receiver.WilddogAuthCastReceiver">
             <intent-filter>
@@ -48,9 +48,9 @@
                 <action android:name="com.wilddog.wilddogauth.signoutsuccess" />
             </intent-filter>
         </receiver>
-        <receiver android:name=".KeepAliveBroadcastReceiver" android:enabled="true" android:exported="true"/>
+        <receiver android:name=".broadreceiver.KeepAliveBroadcastReceiver" android:enabled="true" android:exported="true"/>
 
-        <service android:name=".WilddogVideoService" android:enabled="true"/>
+        <service android:name=".service.WilddogVideoService" android:enabled="true"/>
     </application>
 
 </manifest>
