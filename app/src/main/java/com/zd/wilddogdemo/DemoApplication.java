@@ -5,6 +5,7 @@ import android.app.Application;
 import com.wilddog.wilddogauth.WilddogAuth;
 import com.wilddog.wilddogcore.WilddogApp;
 import com.wilddog.wilddogcore.WilddogOptions;
+import com.zd.wilddogdemo.net.Net;
 
 /**
  * Created by dongjijin on 2017/8/28 0028.
@@ -15,6 +16,7 @@ public class DemoApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        Net.init(getApplicationContext());
         initWilddogApp();
     }
 

@@ -2,15 +2,16 @@ package com.zd.wilddogdemo.service;
 
 import android.app.Service;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.gson.Gson;
 import com.wilddog.video.CallStatus;
 import com.wilddog.video.Conversation;
 import com.wilddog.video.LocalStream;
@@ -19,20 +20,28 @@ import com.wilddog.video.RemoteStream;
 import com.wilddog.video.WilddogVideo;
 import com.wilddog.video.WilddogVideoError;
 import com.zd.wilddogdemo.R;
+import com.zd.wilddogdemo.beans.Result;
 import com.zd.wilddogdemo.beans.User;
 import com.zd.wilddogdemo.broadreceiver.KeepAliveBroadcastReceiver;
 import com.zd.wilddogdemo.cons.ConversationCons;
-import com.zd.wilddogdemo.ui.DoctorActivity;
-import com.zd.wilddogdemo.ui.UserActivity;
+import com.zd.wilddogdemo.net.Net;
+import com.zd.wilddogdemo.storage.ObjectPreference;
+import com.zd.wilddogdemo.ui.DialActivity;
+
+import java.util.HashMap;
+
+import io.reactivex.annotations.NonNull;
+
+import static android.R.attr.data;
 
 
 /**
  * Created by dongjijin on 2017/8/30 0030.
  */
 
-public class WilddogVideoService extends Service implements Conversation.Listener {
+public class DialService extends Service implements Conversation.Listener {
 
-    private static final String TAG = "WilddogVideoService";
+    private static final String TAG = "DialService";
     private Conversation mVideoConversation;
     private KeepAliveBroadcastReceiver mReceiver;
     private WilddogVideo mWilddogVideo;
@@ -49,22 +58,18 @@ public class WilddogVideoService extends Service implements Conversation.Listene
                     break;
 //                呼叫
                 case ConversationCons.RING_UP:
-                    callPeer((String)message.obj);
+                    callPeer((DialActivity.DialInfo) message.obj);
                     break;
 //                挂断
                 case ConversationCons.HANG_UP:
                     closeConversation();
+                    uploadVideoConversationRecord();
                     break;
-//                接受
-                case ConversationCons.ACCEPTED:
-                    if (mLocalStream == null) {
-                        createLocalStream();
+                case ConversationCons.CLOSE:
+                    if (mVideoConversation != null) {
+                        mVideoConversation.close();
+                        mVideoConversation = null;
                     }
-                    mVideoConversation.accept(mLocalStream);
-                    break;
-//                拒绝
-                case ConversationCons.REJECTED:
-                    mVideoConversation.reject();
                     break;
                 default:
                     break;
@@ -73,20 +78,19 @@ public class WilddogVideoService extends Service implements Conversation.Listene
         }
     }));
     private Messenger mClientMessenger;
-    private boolean isBinded = false;
     private boolean onCall = false;
     private User mUser;
+    private long mStartTime;
+    private String mDoctorUid;
 
 
     @Override
     public void onCreate() {
         super.onCreate();
-        startKeepAliveBroadcastReceiver();
     }
 
     @Override
     public void onDestroy() {
-        stopKeepAliveBroadcastReceiver();
         mWilddogVideo.stop();
         super.onDestroy();
     }
@@ -95,27 +99,24 @@ public class WilddogVideoService extends Service implements Conversation.Listene
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             mUser = (User) intent.getSerializableExtra("user");
-            initWilddogVideo(mUser.getToken());
+            initWilddogVideo(mUser.getWilddogVideoToken());
         }
         return START_STICKY;
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
-        isBinded = false;
         return true;
     }
 
     @Override
     public void onRebind(Intent intent) {
         super.onRebind(intent);
-        isBinded = true;
     }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        isBinded = true;
         return mServerMessenger.getBinder();
     }
 
@@ -124,54 +125,9 @@ public class WilddogVideoService extends Service implements Conversation.Listene
         String videoAppID = getResources().getString(R.string.video_app_id);
         WilddogVideo.initialize(getApplicationContext(), videoAppID, token);
         mWilddogVideo = WilddogVideo.getInstance();
-        mWilddogVideo.setListener(new WilddogVideo.Listener() {
-            @Override
-            public void onCalled(Conversation conversation, String s) {
-
-                mVideoConversation = conversation;
-                mVideoConversation.setConversationListener(WilddogVideoService.this);
-                if (isBinded) {
-                    Message msg = Message.obtain();
-                    msg.what = ConversationCons.RING_UP;
-                    msg.obj = s;
-                    try {
-                        mClientMessenger.send(msg);
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    Intent intent;
-                    if (mUser.isDoctor()) {
-                        intent = new Intent(getApplicationContext(), DoctorActivity.class);
-                    } else {
-                        intent = new Intent(getApplicationContext(), UserActivity.class);
-                    }
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    intent.putExtra("user", mUser);
-                    startActivity(intent);
-                }
-            }
-
-            @Override
-            public void onTokenError(WilddogVideoError wilddogVideoError) {
-                String message = wilddogVideoError.getMessage();
-                Log.d(TAG, "onTokenError: " + message);
-            }
-        });
         mWilddogVideo.start();
     }
 
-    private void startKeepAliveBroadcastReceiver() {
-        mReceiver = new KeepAliveBroadcastReceiver();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_SCREEN_OFF);
-        filter.addAction(Intent.ACTION_SCREEN_ON);
-        registerReceiver(mReceiver, filter);
-    }
-
-    private void stopKeepAliveBroadcastReceiver() {
-        unregisterReceiver(mReceiver);
-    }
 
     private void createLocalStream() {
         LocalStreamOptions options = new LocalStreamOptions.Builder()
@@ -180,17 +136,23 @@ public class WilddogVideoService extends Service implements Conversation.Listene
         mLocalStream = mWilddogVideo.createLocalStream(options);
     }
 
-    private void callPeer(String remoteUid) {
+    private void callPeer(DialActivity.DialInfo info) {
         createLocalStream();
-        mVideoConversation = mWilddogVideo.call(remoteUid, mLocalStream, mUser.getUid());
+        mDoctorUid = info.getDoctorUid();
+        HashMap<String, String> data = new HashMap<>();
+        data.put("nickname", info.getUser().getNick_name());
+        String imgUrl = info.getUser().getHead_img_url();
+        data.put("faceurl", "http://www.feizl.com/upload2007/2014_06/140625163961254.jpg");
+        String user = new Gson().toJson(data);
+        mVideoConversation = mWilddogVideo.call(info.getDoctorUid(), mLocalStream, user);
         mVideoConversation.setConversationListener(this);
     }
 
     private void closeConversation() {
         if (onCall) {
             mVideoConversation.close();
-            mLocalStream.detach();
-            mRemoteStream.detach();
+//            mLocalStream.detach();
+//            mRemoteStream.detach();
             mVideoConversation = null;
             mLocalStream = null;
             mRemoteStream = null;
@@ -236,6 +198,7 @@ public class WilddogVideoService extends Service implements Conversation.Listene
         } catch (RemoteException e) {
             e.printStackTrace();
         }
+        mStartTime = System.currentTimeMillis() / 1000;
         onCall = true;
     }
 
@@ -246,6 +209,7 @@ public class WilddogVideoService extends Service implements Conversation.Listene
         msg.what = ConversationCons.HANG_UP;
         try {
             mClientMessenger.send(msg);
+            uploadVideoConversationRecord();
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -255,6 +219,26 @@ public class WilddogVideoService extends Service implements Conversation.Listene
     public void onError(WilddogVideoError wilddogVideoError) {
         String message = wilddogVideoError.getMessage();
         Log.d(TAG, "onError: " + message);
+    }
+
+    private void uploadVideoConversationRecord() {
+        long currentTime = System.currentTimeMillis() / 1000;
+        Net.instance().uploadVideoConversationRecord(
+                mUser.getToken(), mUser.getUser_id(), mDoctorUid, mStartTime, currentTime - mStartTime,
+                new Net.OnNext<Result<User>>() {
+                    @Override
+                    public void onNext(@NonNull Result<User> result) {
+                        if (result.getCode() == 100) {
+                            ObjectPreference.saveObject(getApplicationContext(), result.getData());
+                        }
+                    }
+                },
+                new Net.OnError() {
+                    @Override
+                    public void onError(@NonNull Throwable e) {
+                        Log.d(TAG, "onError: " + e.toString());
+                    }
+                });
     }
 
     public class VideoStream {

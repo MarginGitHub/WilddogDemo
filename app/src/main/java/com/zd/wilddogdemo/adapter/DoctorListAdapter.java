@@ -1,19 +1,19 @@
 package com.zd.wilddogdemo.adapter;
 
 
+import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.bumptech.glide.Glide;
 import com.zd.wilddogdemo.R;
 import com.zd.wilddogdemo.beans.Doctor;
-import com.zd.wilddogdemo.ui.UserActivity;
+import com.zd.wilddogdemo.utils.GlideApp;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -22,21 +22,21 @@ import java.util.List;
 
 public class DoctorListAdapter extends RecyclerView.Adapter<DoctorListAdapter.UserListViewHolder> {
     private List<Doctor> mData;
-    private UserActivity mContext;
+    private ICallPeer mCallPeer;
 
-    public DoctorListAdapter(UserActivity context) {
-        mContext = context;
+    public DoctorListAdapter(ICallPeer callPeer) {
+        mCallPeer = callPeer;
     }
 
     public void setData(List<Doctor> data) {
         mData = data;
-        notifyDataSetChanged();
     }
+
 
     @Override
     public UserListViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_user_list, parent, false);
-        return new UserListViewHolder(view, mContext);
+        return new UserListViewHolder(view, mCallPeer);
     }
 
     @Override
@@ -53,29 +53,67 @@ public class DoctorListAdapter extends RecyclerView.Adapter<DoctorListAdapter.Us
         return mData.size();
     }
 
+    public boolean addItem(Doctor doctor) {
+        if (doctor == null) {
+            return false;
+        }
+        boolean ret = mData.add(doctor);
+        notifyItemInserted(mData.size() - 1);
+        return ret;
+    }
+
+    public boolean addItems(List<Doctor> doctors) {
+        if (doctors == null || doctors.size() == 0) {
+            return false;
+        }
+        int start = mData.size();
+        boolean ret = mData.addAll(doctors);
+        notifyItemRangeInserted(start, doctors.size());
+        return ret;
+    }
+
+    public boolean updateItem(Doctor doctor) {
+        if (doctor == null) {
+            return false;
+        }
+        if (mData.size() != 0) {
+            for (int i = 0; i < mData.size(); i++) {
+                Doctor item = mData.get(i);
+                if (item.getUser_id() == doctor.getUser_id()) {
+                    item.update(doctor);
+                    notifyItemChanged(i);
+                }
+            }
+        }
+        return true;
+    }
+
+    public boolean removeItem(String uid) {
+        if (mData.size() != 0) {
+            for (int i = 0; i < mData.size(); i++) {
+                Doctor item = mData.get(i);
+                if (item.getUser_id().equals(uid)) {
+                    mData.remove(i);
+                    notifyItemRemoved(i);
+                }
+            }
+        }
+        return true;
+    }
+
     class UserListViewHolder extends RecyclerView.ViewHolder {
-        private final ImageView mHeadIv;
-        private final TextView mNameTv;
-        private final TextView mIdTv;
-        private final ImageView mSexIv;
-        private final TextView mFollowCountTv;
-        private final TextView mVideoCountTv;
-        private final TextView mPriceTv;
+        private TextView mNickNameTv;
+        private TextView mPriceTv;
         private Doctor mDoctor;
 
-        public UserListViewHolder(View itemView, final UserActivity context) {
+        public UserListViewHolder(View itemView, final ICallPeer callPeer) {
             super(itemView);
-            mHeadIv = (ImageView) itemView.findViewById(R.id.head_iv);
-            mNameTv = (TextView) itemView.findViewById(R.id.name_tv);
-            mIdTv = (TextView) itemView.findViewById(R.id.id_tv);
-            mSexIv = (ImageView) itemView.findViewById(R.id.sex_iv);
-            mFollowCountTv = (TextView) itemView.findViewById(R.id.follow_count);
-            mVideoCountTv = (TextView) itemView.findViewById(R.id.video_count);
-            mPriceTv = (TextView) itemView.findViewById(R.id.price);
+            mNickNameTv = (TextView) itemView.findViewById(R.id.nick_name);
+            mPriceTv = (TextView)itemView.findViewById(R.id.price);
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    context.callPeer(mDoctor.getUser_id());
+                    callPeer.callPeer(mDoctor);
                 }
 
             });
@@ -83,18 +121,13 @@ public class DoctorListAdapter extends RecyclerView.Adapter<DoctorListAdapter.Us
 
         public void setDoctor(Doctor doctor) {
             mDoctor = doctor;
-            Glide.with(mContext).load(mDoctor.getAd_url()).into(mHeadIv);
-            mNameTv.setText(mDoctor.getNick_name());
-            mIdTv.setText(mDoctor.getUser_id());
-            if (mDoctor.getSex().equals("1")) {
-
-            } else {
-
-            }
-            mFollowCountTv.setText(mDoctor.getFollow_count());
-            mVideoCountTv.setText(mDoctor.getVideo_count());
-            mPriceTv.setText(mDoctor.getVideo_price());
+            mNickNameTv.setText(mDoctor.getNick_name());
+            mPriceTv.setText(String.format("%s元/次", mDoctor.getVideo_price()));
         }
 
+    }
+
+    public interface ICallPeer {
+        void callPeer(Doctor doctor);
     }
 }

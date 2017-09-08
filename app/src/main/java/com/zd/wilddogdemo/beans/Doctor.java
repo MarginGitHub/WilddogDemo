@@ -92,6 +92,16 @@ public class Doctor implements Serializable{
         this.follow_count = follow_count;
     }
 
+    public void update(Doctor doctor) {
+        nick_name = doctor.getNick_name();
+        sex = doctor.getSex();
+        ref_user_id = doctor.getRef_user_id();
+        ad_url = doctor.getAd_url();
+        follow_count = doctor.getFollow_count();
+        video_count = doctor.getVideo_count();
+        video_price = doctor.getVideo_price();
+    }
+
     @Override
     public String toString() {
         return "Doctor{" +

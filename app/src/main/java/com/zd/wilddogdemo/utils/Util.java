@@ -1,6 +1,8 @@
 package com.zd.wilddogdemo.utils;
 
 
+import android.text.TextUtils;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -9,6 +11,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static android.R.attr.data;
 
@@ -69,5 +72,21 @@ public class Util {
             builder.append(entry.getValue());
         }
         return md5(builder.toString());
+    }
+
+    public static boolean isPhoneValid(String phone) {
+        if (TextUtils.isEmpty(phone) || !TextUtils.isDigitsOnly(phone) || phone.length() != 11) {
+            return false;
+        }
+        String regex = "^((13[0-9])|(14[5|7])|(15([0-3]|[5-9]))|(18[0,2,5-9]))\\d{8}$";
+        Pattern pattern = Pattern.compile(regex);
+        return pattern.matcher(phone).find();
+    }
+
+    public static boolean isPasswordValid(String password) {
+        if (TextUtils.isEmpty(password) || password.length() < 6) {
+            return false;
+        }
+        return true;
     }
 }

@@ -1,14 +1,21 @@
 package com.zd.wilddogdemo.ui;
 
 
+import android.Manifest;
+import android.app.ProgressDialog;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
 import android.widget.AutoCompleteTextView;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.wilddog.client.SyncReference;
@@ -17,239 +24,168 @@ import com.wilddog.wilddogauth.WilddogAuth;
 import com.wilddog.wilddogauth.core.Task;
 import com.wilddog.wilddogauth.core.listener.OnCompleteListener;
 import com.wilddog.wilddogauth.core.result.AuthResult;
-import com.wilddog.wilddogauth.model.WilddogUser;
 import com.wilddog.wilddogcore.WilddogApp;
-import com.zd.wilddogdemo.DemoApplication;
 import com.zd.wilddogdemo.R;
-import com.zd.wilddogdemo.beans.Doctor;
-import com.zd.wilddogdemo.beans.LoginInfo;
+import com.zd.wilddogdemo.beans.Login;
 import com.zd.wilddogdemo.beans.Result;
 import com.zd.wilddogdemo.beans.User;
-import com.zd.wilddogdemo.net.NetService;
-import com.zd.wilddogdemo.net.NetServiceConfig;
-import com.zd.wilddogdemo.net.NetServiceProvider;
-import com.zd.wilddogdemo.service.WilddogVideoService;
+import com.zd.wilddogdemo.net.Net;
+import com.zd.wilddogdemo.service.AliveService;
+import com.zd.wilddogdemo.service.DialService;
+import com.zd.wilddogdemo.service.VideoReceiverService;
 import com.zd.wilddogdemo.storage.ObjectPreference;
 import com.zd.wilddogdemo.utils.Util;
 
 import java.util.HashMap;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-import io.reactivex.Observer;
-import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.annotations.NonNull;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
+import pub.devrel.easypermissions.EasyPermissions;
 
 
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks {
 
+    private static final int RC_AUDIO_CAMERA = 100;
+    private static final int REQUEST_CODE = 1;
     @BindView(R.id.phone)
     AutoCompleteTextView mPhone;
     @BindView(R.id.doctor_cb)
     CheckBox mDoctorCb;
+    @BindView(R.id.password)
+    EditText mPassword;
+    @BindView(R.id.register)
+    TextView mRegister;
     private User mUser;
-    private NetService mService;
+
+    private ProgressDialog mProgressDialog;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         ButterKnife.bind(this);
+        initViews();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            initPermissions();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE && resultCode == RegisterActivity.RESULT_CODE) {
+            initViews();
+        }
+    }
+
+    private void initViews() {
         mUser = ObjectPreference.getObject(this, User.class);
-        if ((mUser != null) && (!TextUtils.isEmpty(mUser.getPhone()))) {
-            mPhone.setText(mUser.getPhone());
+        mRegister.setEnabled(true);
+        mDoctorCb.setFocusable(true);
+        if ((mUser != null) && (!TextUtils.isEmpty(mUser.getMobile()))) {
+            mPhone.setText(mUser.getMobile());
+            mPassword.setText(mUser.getPwd());
         }
-    }
-
-
-    @OnClick(R.id.sign_in_button)
-    public void onViewClicked() {
-//        final boolean isDoctor = mDoctorCb.isChecked();
-//        WilddogAuth.getInstance().signInAnonymously().addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-//            @Override
-//            public void onComplete(Task<AuthResult> var1) {
-//                if (var1.isSuccessful()) {
-//                    WilddogUser wilddogUser = var1.getResult().getWilddogUser();
-//                    User u = new User();
-//                    u.setPhone("");
-//                    u.setDoctor(isDoctor);
-//                    u.setUid(wilddogUser.getUid());
-//                    u.setToken(wilddogUser.getToken(false).getResult().getToken());
-//                    u.setLast_login_time(System.currentTimeMillis() / 100);
-//                    syncUserData(u);
-//                    startVideoService(u);
-//
-//                    Intent intent;
-//                    if (u.isDoctor()) {
-//                        intent = new Intent(LoginActivity.this, DoctorActivity.class);
-//                    } else {
-//                        intent = new Intent(LoginActivity.this, UserActivity.class);
-//                    }
-//                    intent.putExtra("user", u);
-//                    startActivity(intent);
-//                }
-//            }
-//        });
-
-        final boolean isDoctor = mDoctorCb.isChecked();
-        final String phone = mPhone.getText().toString().trim();
-        if (TextUtils.isEmpty(phone)) {
-            Toast.makeText(this, "电话号码不能为空", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (mUser == null || mUser.isOverdue() || mUser.isDoctor() != isDoctor || !mUser.getPhone().equals(phone)) {
-            mService = (NetService) NetServiceProvider.instance(this)
-                    .provider(NetService.class, NetServiceConfig.SERVER_BASE_URL);
-
-            String ts = String.valueOf(System.currentTimeMillis() / 1000);
-            String apiKey = "test";
-            String mobile = phone;
-            String password = "12345678";
-            int flag = 1;
-
-            HashMap<String, String> params = new HashMap<>();
-            params.put("ts", ts);
-            params.put("apiKey", apiKey);
-            params.put("mobile", phone);
-            params.put("password", password);
-            params.put("flag", String.valueOf(flag));
-            String sign = Util.sign(params);
-            mService.login(ts, apiKey, sign, mobile, password, flag)
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(new Observer<Result<LoginInfo>>() {
-                        @Override
-                        public void onSubscribe(@NonNull Disposable d) {
-
-                        }
-
-                        @Override
-                        public void onNext(@NonNull Result<LoginInfo> loginInfoResult) {
-                            switch (loginInfoResult.getCode()) {
-                                case 100:
-                                    LoginInfo loginInfo = loginInfoResult.getData();
-                                    Log.d("login", loginInfo.toString());
-                                    User u = new User();
-                                    u.setUid(loginInfo.getUser_id());
-                                    u.setWilddog_login_token(loginInfo.getWilddog_token());
-                                    u.setLast_login_time(System.currentTimeMillis() / 1000);
-                                    u.setDoctor(isDoctor);
-                                    u.setPhone(phone);
-                                    wilddogLogin(u);
-
-                                    break;
-                                case 101:
-                                    Log.d("login", loginInfoResult.getMsg());
-                                    break;
-                                default:
-                                    Log.d("login", loginInfoResult.toString());
-                                    break;
-                            }
-                        }
-
-                        @Override
-                        public void onError(@NonNull Throwable e) {
-                            Toast.makeText(LoginActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
-                        }
-
-                        @Override
-                        public void onComplete() {
-
-                        }
-                    });
-        } else {
-            wilddogLogin(mUser);
-        }
-
-
-    }
-
-    private void wilddogLogin(final User user) {
-        WilddogAuth.getInstance(WilddogApp.getInstance())
-                .signInWithCustomToken(user.getWilddog_login_token())
-                .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+        mDoctorCb.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onComplete(Task<AuthResult> authResultTask) {
-                if (authResultTask.isSuccessful()) {
-                    String token = authResultTask.getResult().getWilddogUser().getToken(false).getResult().getToken();
-                    user.setToken(token);
-                    syncUserData(user);
-                    startVideoService(user);
-                    Intent intent;
-                    if (user.isDoctor()) {
-                        intent = new Intent(LoginActivity.this, DoctorActivity.class);
-                    } else {
-                        intent = new Intent(LoginActivity.this, UserActivity.class);
-                    }
-                    intent.putExtra("user", user);
-                    startActivity(intent);
-                    ObjectPreference.saveObject(LoginActivity.this, user);
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                if (b) {
+                    mRegister.setVisibility(View.INVISIBLE);
+                } else {
+                    mRegister.setVisibility(View.VISIBLE);
                 }
             }
         });
     }
 
-    private void syncUserData(final User user) {
-//        if (user.isDoctor()) {
-//            String ts = String.valueOf(System.currentTimeMillis() / 1000);
-//            String apiKey = "test";
-//
-//            HashMap<String, String> params = new HashMap<>();
-//            params.put("ts", ts);
-//            params.put("apiKey", apiKey);
-//            params.put("userId", user.getUid());
-//            params.put("docId", user.getUid());
-//            String sign = Util.sign(params);
-//            mService.getDoctorInfo(ts, apiKey, sign, user.getUid(), user.getUid())
-//                    .subscribeOn(Schedulers.io())
-//                    .observeOn(AndroidSchedulers.mainThread())
-//                    .subscribe(new Observer<Result<Doctor>>() {
-//                        @Override
-//                        public void onSubscribe(@NonNull Disposable d) {
-//
-//                        }
-//
-//                        @Override
-//                        public void onNext(@NonNull Result<Doctor> doctorResult) {
-//                            if (doctorResult.getCode() == 100) {
-//                                Doctor doctor = doctorResult.getData();
-//                                SyncReference reference = WilddogSync.getInstance()
-//                                                .getReference(getResources()
-//                                                .getString(R.string.doctors_room));
-//                                HashMap<String, Object> map = new HashMap();
-//                                map.put(user.getUid(), doctor);
-//                                reference.updateChildren(map);
-//                                reference.child(user.getUid()).onDisconnect().removeValue();
-//                            }
-//                        }
-//
-//                        @Override
-//                        public void onError(@NonNull Throwable e) {
-//                            Log.d("getDoctorInfo", "onError: " + e.toString());
-//                        }
-//
-//                        @Override
-//                        public void onComplete() {
-//                            Log.d("getDoctorInfo", "onComplete: ");
-//                        }
-//                    });
-//        } else {
-//            SyncReference reference = WilddogSync.getInstance()
-//                    .getReference(getResources()
-//                            .getString(R.string.users_room));
-//            HashMap<String, Object> map = new HashMap();
-//            map.put(user.getUid(), true);
-//            reference.updateChildren(map);
-//            reference.child(user.getUid()).onDisconnect().removeValue();
-//        }
 
+    private void login() {
+        final boolean isDoctor = mDoctorCb.isChecked();
+        final String mobile = mPhone.getText().toString().trim();
+        final String pwd = mPassword.getText().toString().trim();
+        if (!Util.isPhoneValid(mobile)) {
+            Toast.makeText(this, "电话号码格式不正确", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!Util.isPasswordValid(pwd)) {
+            Toast.makeText(this, "密码长度最少为6位且不能有特殊字符", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setMessage("正在登录中，请稍等");
+        mProgressDialog.show();
+
+        if (mUser == null || mUser.isOverdue() || mUser.isDoctor() != isDoctor
+                || !mUser.getMobile().equals(mobile) || !mUser.getPwd().equals(pwd)) {
+            Net.instance().login(mobile, pwd,
+                    new Net.OnNext<Result<User>>() {
+                        @Override
+                        public void onNext(@NonNull Result<User> result) {
+                            if (result.getCode() == 100) {
+                                User user = result.getData();
+                                user.setDoctor(isDoctor);
+                                user.setPwd(pwd);
+                                wilddogLogin(user);
+                            }
+                        }
+                    },
+                    new Net.OnError() {
+                        @Override
+                        public void onError(@NonNull Throwable e) {
+                            Log.d("login", "onError: " + e.toString());
+                            mProgressDialog.dismiss();
+                        }
+                    });
+        } else {
+            wilddogLogin(mUser);
+        }
+    }
+
+    private void wilddogLogin(final User user) {
+        Net.instance().wilddogLogin(user, new Net.OnNext<Task<AuthResult>>() {
+                    @Override
+                    public void onNext(@NonNull Task<AuthResult> result) {
+                        if (result.isSuccessful()) {
+                            String token = result.getResult().getWilddogUser().getToken(false).getResult().getToken();
+                            user.setWilddogVideoToken(token);
+                            syncUserData(user);
+                            startVideoService(user);
+                            Intent intent;
+                            if (user.isDoctor()) {
+                                intent = new Intent(LoginActivity.this, DoctorActivity.class);
+                                intent.putExtra("user", user);
+                            } else {
+                                intent = new Intent(LoginActivity.this, MainActivity.class);
+                                intent.putExtra("user", user);
+                            }
+                            startActivity(intent);
+                            finish();
+                        }
+                        mProgressDialog.dismiss();
+                    }
+                },
+                new Net.OnError() {
+                    @Override
+                    public void onError(@NonNull Throwable e) {
+                        Log.d("wilddogLogin", "onError: " + e.toString());
+                        mProgressDialog.dismiss();
+                    }
+                });
+    }
+
+    private void syncUserData(final User user) {
+//        保存用户信息到本地
+        ObjectPreference.saveObject(LoginActivity.this, user);
+//        野狗方面数据的存储
+        WilddogSync.goOnline();
         SyncReference reference;
         if (user.isDoctor()) {
             reference = WilddogSync.getInstance()
@@ -261,17 +197,57 @@ public class LoginActivity extends AppCompatActivity {
                             .getString(R.string.users_room));
         }
         HashMap<String, Object> map = new HashMap();
-        map.put(user.getUid(), true);
+        map.put(user.getUser_id(), true);
         reference.updateChildren(map);
-        reference.child(user.getUid()).onDisconnect().removeValue();
+        reference.child(user.getUser_id()).onDisconnect().removeValue();
 
     }
 
 
     private void startVideoService(User user) {
-        Intent intent = new Intent(this, WilddogVideoService.class);
+//        开启保活Service
+//        startService(new Intent(this, AliveService.class));
+//        判断是医生还是用户，以此来开启相应的Service
+        Intent intent;
+        if (user.isDoctor()) {
+            intent = new Intent(this, VideoReceiverService.class);
+        } else {
+            intent = new Intent(this, DialService.class);
+        }
         intent.putExtra("user", user);
         startService(intent);
+    }
+
+    @OnClick({R.id.sign_in_button, R.id.register})
+    public void onViewClicked(View view) {
+        switch (view.getId()) {
+            case R.id.sign_in_button:
+                login();
+                break;
+            case R.id.register:
+                startActivityForResult(new Intent(this, RegisterActivity.class), REQUEST_CODE);
+                break;
+        }
+    }
+
+    private void initPermissions() {
+        String[] perms = {Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA,
+                Manifest.permission.MODIFY_AUDIO_SETTINGS, Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.READ_CONTACTS, Manifest.permission.GET_ACCOUNTS,
+                Manifest.permission.ACCESS_WIFI_STATE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
+        if (!EasyPermissions.hasPermissions(this, perms)) {
+            EasyPermissions.requestPermissions(this, "需要音视频存储相关权限", RC_AUDIO_CAMERA, perms);
+        }
+    }
+
+    @Override
+    public void onPermissionsGranted(int requestCode, List<String> perms) {
+
+    }
+
+    @Override
+    public void onPermissionsDenied(int requestCode, List<String> perms) {
+        finish();
     }
 }
 

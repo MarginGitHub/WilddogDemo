@@ -1,6 +1,6 @@
-package com.zd.wilddogdemo.ui;
+package com.zd.wilddogdemo.ui.fragment;
 
-
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -9,12 +9,13 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,10 +25,9 @@ import com.wilddog.video.WilddogVideo;
 import com.wilddog.wilddogauth.WilddogAuth;
 import com.yalantis.ucrop.UCrop;
 import com.zd.wilddogdemo.R;
-import com.zd.wilddogdemo.beans.Result;
 import com.zd.wilddogdemo.beans.User;
-import com.zd.wilddogdemo.net.Net;
-import com.zd.wilddogdemo.net.NetServiceConfig;
+import com.zd.wilddogdemo.ui.LoginActivity;
+import com.zd.wilddogdemo.ui.MainActivity;
 import com.zd.wilddogdemo.utils.GlideApp;
 
 import java.io.File;
@@ -38,85 +38,111 @@ import java.io.IOException;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-import io.reactivex.annotations.NonNull;
+import butterknife.Unbinder;
 
 
-public class DoctorActivity extends AppCompatActivity {
+/**
+ * Created by dongjijin on 2017/9/6 0006.
+ */
 
-    private static final int CAPTURE_REQUEST_CODE = 100;
-    private static final int ALBUM_REQUEST_CODE = 200;
+public class AboutMeFragment extends Fragment {
+
+    private static final int CAPTURE_REQUEST_CODE = 1;
+    private static final int ALBUM_REQUEST_CODE = 2;
     @BindView(R.id.head_iv)
     ImageView mHeadIv;
     @BindView(R.id.nick_name)
     TextView mNickName;
     @BindView(R.id.balance_account)
     TextView mBalanceAccount;
-
-    private User mUser;
+    Unbinder unbinder;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onAttach(Context context) {
+        super.onAttach(context);
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_doctor);
-        ButterKnife.bind(this);
+    }
+
+    @Nullable
+    @Override
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_about_me, container, false);
+        unbinder = ButterKnife.bind(this, view);
         initViews();
+        return view;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        unbinder.unbind();
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
     }
 
     private void initViews() {
-        mUser = (User) getIntent().getSerializableExtra("user");
-        String imgUrl = mUser.getHead_img_url();
-        if (!TextUtils.isEmpty(imgUrl)) {
+        User user = ((MainActivity) getActivity()).mUser;
+        mNickName.setText(user.getNick_name());
+        if (!TextUtils.isEmpty(user.getHead_img_url())) {
             GlideApp.with(this)
-                    .load(NetServiceConfig.SERVER_BASE_URL + imgUrl)
+                    .load(user.getHead_img_url())
                     .placeholder(R.drawable.head)
                     .circleCrop()
                     .into(mHeadIv);
         }
-        mNickName.setText(mUser.getNick_name());
-        mBalanceAccount.setText(String.format("余额: %f元", mUser.getAmount()));
+        mBalanceAccount.setText(String.format("余额: %f元", user.getAmount()));
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-    }
 
-    @OnClick({R.id.logout, R.id.head_iv, R.id.conversation_history})
+    @OnClick({R.id.conversation_history, R.id.logout_button, R.id.head_iv})
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.head_iv:
                 changeHeadView();
                 break;
             case R.id.conversation_history:
-                Toast.makeText(this, "该功能暂未开放", Toast.LENGTH_SHORT).show();
                 break;
-            case R.id.logout:
+            case R.id.logout_button:
                 WilddogVideo.getInstance().stop();
                 WilddogAuth.getInstance().signOut();
                 WilddogSync.goOffline();
-                startActivity(new Intent(this, LoginActivity.class));
-                finish();
+                startActivity(new Intent(getContext(), LoginActivity.class));
+                getActivity().finish();
+                break;
+
+            case R.id.camera:
+                openCamera();
+                break;
+            case R.id.album:
+                openAlbum();
                 break;
         }
     }
 
 
     private void changeHeadView() {
-        View view = LayoutInflater.from(this).inflate(R.layout.view_change_head_img, null);
-        final AlertDialog dialog = new AlertDialog.Builder(this)
+        View view = LayoutInflater.from(getContext()).inflate(R.layout.view_change_head_img, null);
+        final AlertDialog dialog = new AlertDialog.Builder(getContext())
                 .setView(view)
                 .create();
         view.findViewById(R.id.camera).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                openCamera();
+                onViewClicked(view);
                 dialog.dismiss();
             }
         });
         view.findViewById(R.id.album).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                openAlbum();
+                onViewClicked(view);
                 dialog.dismiss();
             }
         });
@@ -139,7 +165,7 @@ public class DoctorActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
             Intent intent = new Intent(
                     Intent.ACTION_PICK,
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             startActivityForResult(intent, ALBUM_REQUEST_CODE);
         } else {
 
@@ -166,47 +192,15 @@ public class DoctorActivity extends AppCompatActivity {
                 if (selectUri != null) {
                     UCrop.of(selectUri, Uri.fromFile(imgFile))
                             .useSourceImageAspectRatio()
-                            .start(this);
+                            .start(getActivity());
                 }
-                break;
-            case UCrop.REQUEST_CROP:
-                if (resultCode == RESULT_OK) {
-                    final Uri output = UCrop.getOutput(data);
-                    // 其次把文件插入到系统图库
-                    try {
-                        MediaStore.Images.Media.insertImage(getContentResolver(),
-                                output.getPath(), "head.png", null);
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                    // 最后通知图库更新
-                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, output));
-                    Net.instance().uploadDoctorHeadImage(mUser.getToken(), mUser.getUser_id(), output.getPath(), new Net.OnNext<Result<String>>() {
-                                @Override
-                                public void onNext(@NonNull Result<String> result) {
-                                    if (result.getCode() == 100) {
-                                        changeHeadView(output);
-                                    }
-                                }
-                            },
-                            new Net.OnError() {
-                                @Override
-                                public void onError(@NonNull Throwable e) {
-                                    Log.d("uploadHead", "onError: " + e.toString());
-                                }
-                            });
-                } else if (resultCode == UCrop.RESULT_ERROR) {
-
-                }
-                break;
-            default:
                 break;
 
         }
     }
 
     public void changeHeadView(Uri uri) {
-        GlideApp.with(this)
+        GlideApp.with(getContext())
                 .load(uri)
                 .placeholder(R.drawable.head)
                 .circleCrop().into(mHeadIv);
@@ -228,7 +222,7 @@ public class DoctorActivity extends AppCompatActivity {
         Uri uri = Uri.fromFile(file);
         UCrop.of(uri, uri)
                 .useSourceImageAspectRatio()
-                .start(this);
+                .start(getActivity());
 
     }
 
@@ -242,5 +236,6 @@ public class DoctorActivity extends AppCompatActivity {
         File file = new File(appDir, fileName);
         return file;
     }
+
 
 }

@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center_horizontal"
-    tools:context="com.zd.wilddogdemo.ui.DoctorActivity">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -45,7 +41,7 @@
     </RelativeLayout>
     <View
         android:layout_width="match_parent"
-        android:layout_height="1dp"
+        android:layout_height="0.5dp"
         android:background="#eeeeee"/>
     <RelativeLayout
         android:id="@+id/conversation_history"
@@ -56,10 +52,10 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="22dp"
+            android:layout_marginLeft="20dp"
             android:layout_centerVertical="true"
             android:textSize="16sp"
-            android:text="通话记录"/>
+            android:text="通话历史"/>
         <ImageView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -78,7 +74,7 @@
         android:layout_weight="1"/>
 
     <Button
-        android:id="@+id/logout"
+        android:id="@+id/logout_button"
         style="?android:textAppearanceSmall"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -87,5 +83,6 @@
         android:layout_marginBottom="16dp"
         android:text="@string/logout"
         android:textStyle="bold"/>
+
 
 </LinearLayout>

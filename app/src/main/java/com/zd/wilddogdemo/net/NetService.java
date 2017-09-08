@@ -3,11 +3,18 @@ package com.zd.wilddogdemo.net;
 import com.zd.wilddogdemo.beans.Doctor;
 import com.zd.wilddogdemo.beans.LoginInfo;
 import com.zd.wilddogdemo.beans.Result;
+import com.zd.wilddogdemo.beans.User;
 
 import java.util.List;
 
 import io.reactivex.Observable;
+import okhttp3.MultipartBody;
+import retrofit2.http.Field;
+import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
+import retrofit2.http.Multipart;
+import retrofit2.http.POST;
+import retrofit2.http.Part;
 import retrofit2.http.Query;
 
 /**
@@ -17,7 +24,7 @@ import retrofit2.http.Query;
 public interface NetService {
 
     @GET("auth/login")
-    Observable<Result<LoginInfo>> login(
+    Observable<Result<User>> login(
             @Query("ts") String ts, @Query("apiKey") String apiKey, @Query("sign") String sign,
             @Query("mobile") String mobile, @Query("password") String password, @Query("flag") int flag);
 
@@ -30,5 +37,34 @@ public interface NetService {
     Observable<Result<Doctor>> getDoctorInfo(
             @Query("ts") String ts, @Query("apiKey") String apiKey, @Query("sign") String sign,
             @Query("userId") String userId, @Query("docId") String docId);
+
+    @GET("user/getinfo")
+    Observable<Result<User>> getUserInfo(
+            @Query("ts") String ts, @Query("apiKey") String apiKey, @Query("sign") String sign,
+            @Query("userId") String userId
+    );
+
+    @GET("auth/register")
+    Observable<Result<User>> register(
+            @Query("ts") String ts, @Query("apiKey") String apiKey, @Query("sign") String sign,
+            @Query("mobile") String mobile, @Query("password") String password, @Query("ref") String ref);
+
+    @Multipart
+    @POST("auth/uploadHead")
+    Observable<Result<String>> uploadUserHeadImage(
+            @Query("ts") String ts, @Query("apiKey") String apiKey, @Query("sign") String sign,
+            @Query("userId") String userId, @Part MultipartBody.Part upfile);
+
+    @Multipart
+    @POST("doctor/uploadAD")
+    Observable<Result<String>> uploadDoctorHeadImage(
+            @Query("ts") String ts, @Query("apiKey") String apiKey, @Query("sign") String sign,
+            @Query("userId") String userId, @Part MultipartBody.Part upfile);
+
+    @GET("user/addVideoCall")
+    Observable<Result<Object>> uploadVideoConversationRecord(
+            @Query("ts") String ts, @Query("apiKey") String apiKey, @Query("sign") String sig,
+            @Query("userId") String userId, @Query("docId") String docId, @Query("start") long start,
+            @Query("duration") long duration );
 
 }
