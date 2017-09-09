@@ -259,10 +259,14 @@ public class Net {
         params.put("userId", userId);
         String sign = Util.sign(params);
         File file = new File(headUrl);
-        RequestBody body = RequestBody.create(MediaType.parse("image/png"), file);
-//        MultipartBody.Part part = MultipartBody.Part.createFormData("upfile", file.length() + "", body);
-        MultipartBody.Part part = MultipartBody.Part.create(body);
-        mNetService.uploadUserHeadImage(ts, apiKey, sign, userId, part)
+
+        RequestBody tsBody = RequestBody.create(MediaType.parse("multipart/form-data"),ts);
+        RequestBody apiKeyBody = RequestBody.create(MediaType.parse("multipart/form-data"),apiKey);
+        RequestBody signBody = RequestBody.create(MediaType.parse("multipart/form-data"),sign);
+        RequestBody userIdBody = RequestBody.create(MediaType.parse("multipart/form-data"),userId);
+        RequestBody fileBody = RequestBody.create(MediaType.parse("image/png"),file);
+        MultipartBody.Part part = MultipartBody.Part.createFormData("upfile", file.getName(), fileBody);
+        mNetService.uploadUserHeadImage(tsBody, apiKeyBody, signBody, userIdBody, part)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<Result<String>>() {
@@ -298,9 +302,14 @@ public class Net {
         params.put("userId", userId);
         String sign = Util.sign(params);
         File file = new File(headUrl);
-        RequestBody body = RequestBody.create(MediaType.parse("image/png"), file);
-        MultipartBody.Part part = MultipartBody.Part.createFormData("upfile", file.length() + "", body);
-        mNetService.uploadDoctorHeadImage(ts, apiKey, sign, userId, part)
+
+        RequestBody tsBody = RequestBody.create(MediaType.parse("multipart/form-data"),ts);
+        RequestBody apiKeyBody = RequestBody.create(MediaType.parse("multipart/form-data"),apiKey);
+        RequestBody signBody = RequestBody.create(MediaType.parse("multipart/form-data"),sign);
+        RequestBody userIdBody = RequestBody.create(MediaType.parse("multipart/form-data"),userId);
+        RequestBody fileBody = RequestBody.create(MediaType.parse("image/png"),file);
+        MultipartBody.Part part = MultipartBody.Part.createFormData("upfile", file.getName(), fileBody);
+        mNetService.uploadDoctorHeadImage(tsBody, apiKeyBody, signBody, userIdBody, part)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<Result<String>>() {

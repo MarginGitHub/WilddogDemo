@@ -23,7 +23,9 @@ public class OkHttpConfig {
             synchronized (OkHttpConfig.class) {
                 if (null == sInstance) {
 //                    mInstance = getDefaultBuilder().sslSocketFactory(SslContextFactory.getSslSocket(appContext)).build();
-                    sInstance = getDefaultBuilder().build();
+                    sInstance = getDefaultBuilder()
+                            .addInterceptor(new NetInterceptor())
+                            .build();
                 }
             }
         }

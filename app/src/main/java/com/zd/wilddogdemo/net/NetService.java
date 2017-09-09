@@ -1,21 +1,21 @@
 package com.zd.wilddogdemo.net;
 
 import com.zd.wilddogdemo.beans.Doctor;
-import com.zd.wilddogdemo.beans.LoginInfo;
 import com.zd.wilddogdemo.beans.Result;
 import com.zd.wilddogdemo.beans.User;
 
 import java.util.List;
+import java.util.Map;
 
 import io.reactivex.Observable;
 import okhttp3.MultipartBody;
-import retrofit2.http.Field;
-import retrofit2.http.FormUrlEncoded;
+import okhttp3.RequestBody;
 import retrofit2.http.GET;
 import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.Part;
 import retrofit2.http.Query;
+import retrofit2.http.QueryMap;
 
 /**
  * Created by dongjijin on 2017/8/10 0010.
@@ -52,14 +52,15 @@ public interface NetService {
     @Multipart
     @POST("auth/uploadHead")
     Observable<Result<String>> uploadUserHeadImage(
-            @Query("ts") String ts, @Query("apiKey") String apiKey, @Query("sign") String sign,
-            @Query("userId") String userId, @Part MultipartBody.Part upfile);
+            @Part("ts") RequestBody ts, @Part("apiKey") RequestBody apiKey, @Part("sign") RequestBody sign,
+            @Part("userId") RequestBody userId, @Part MultipartBody.Part upfile);
+
 
     @Multipart
     @POST("doctor/uploadAD")
     Observable<Result<String>> uploadDoctorHeadImage(
-            @Query("ts") String ts, @Query("apiKey") String apiKey, @Query("sign") String sign,
-            @Query("userId") String userId, @Part MultipartBody.Part upfile);
+            @Part("ts") RequestBody ts, @Part("apiKey") RequestBody apiKey, @Part("sign") RequestBody sign,
+            @Part("userId") RequestBody userId, @Part MultipartBody.Part upfile);
 
     @GET("user/addVideoCall")
     Observable<Result<Object>> uploadVideoConversationRecord(
