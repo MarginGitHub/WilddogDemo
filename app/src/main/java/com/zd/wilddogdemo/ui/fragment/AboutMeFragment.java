@@ -184,6 +184,9 @@ public class AboutMeFragment extends Fragment {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (data == null) {
+            return;
+        }
         switch (requestCode) {
             case CAPTURE_REQUEST_CODE:
                 Uri uri = data.getData();
@@ -193,11 +196,11 @@ public class AboutMeFragment extends Fragment {
                 } else {
                     bitmap = (Bitmap) data.getExtras().get("data");
                 }
-                saveImageToGallery(bitmap);
+                Util.saveImageToGallery(getActivity(), bitmap);
                 break;
             case ALBUM_REQUEST_CODE:
                 Uri selectUri = data.getData();
-                File imgFile = getHeadImgFile();
+                File imgFile = Util.getHeadImgFile();
                 if (selectUri != null) {
                     UCrop.of(selectUri, Uri.fromFile(imgFile))
                             .useSourceImageAspectRatio()
@@ -208,37 +211,6 @@ public class AboutMeFragment extends Fragment {
         }
     }
 
-
-    private void saveImageToGallery(Bitmap bmp) {
-        File file = getHeadImgFile();
-        try {
-            FileOutputStream fos = new FileOutputStream(file);
-            bmp.compress(Bitmap.CompressFormat.PNG, 100, fos);
-            fos.flush();
-            fos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        Uri uri = Uri.fromFile(file);
-        UCrop.of(uri, uri)
-                .useSourceImageAspectRatio()
-                .start(getActivity());
-
-    }
-
-    private File getHeadImgFile() {
-        // 首先保存图片
-        File appDir = new File(Environment.getExternalStorageDirectory(), "wilddog");
-        if (!appDir.exists()) {
-            appDir.mkdir();
-        }
-        String fileName = "head.png";
-        File file = new File(appDir, fileName);
-        return file;
-    }
 
 
 }

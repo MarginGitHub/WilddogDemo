@@ -156,6 +156,9 @@ public class DoctorActivity extends AppCompatActivity {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (data == null) {
+            return;
+        }
         switch (requestCode) {
             case CAPTURE_REQUEST_CODE:
                 Uri uri = data.getData();
@@ -165,11 +168,11 @@ public class DoctorActivity extends AppCompatActivity {
                 } else {
                     bitmap = (Bitmap) data.getExtras().get("data");
                 }
-                saveImageToGallery(bitmap);
+                Util.saveImageToGallery(this, bitmap);
                 break;
             case ALBUM_REQUEST_CODE:
                 Uri selectUri = data.getData();
-                File imgFile = getHeadImgFile();
+                File imgFile = Util.getHeadImgFile();
                 if (selectUri != null) {
                     UCrop.of(selectUri, Uri.fromFile(imgFile))
                             .useSourceImageAspectRatio()
@@ -179,15 +182,6 @@ public class DoctorActivity extends AppCompatActivity {
             case UCrop.REQUEST_CROP:
                 if (resultCode == RESULT_OK) {
                     final Uri output = UCrop.getOutput(data);
-                    // 其次把文件插入到系统图库
-                    try {
-                        MediaStore.Images.Media.insertImage(getContentResolver(),
-                                output.getPath(), "head.png", null);
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                    // 最后通知图库更新
-                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, output));
                     Net.instance().uploadDoctorHeadImage(mUser.getToken(), mUser.getUser_id(), output.getPath(), new Net.OnNext<Result<String>>() {
                                 @Override
                                 public void onNext(@NonNull Result<String> result) {
@@ -214,42 +208,6 @@ public class DoctorActivity extends AppCompatActivity {
         }
     }
 
-    public void changeHeadView(Uri uri) {
-        GlideApp.with(this)
-                .load(uri)
-                .placeholder(R.drawable.head)
-                .circleCrop().into(mHeadIv);
-    }
 
-    private void saveImageToGallery(Bitmap bmp) {
-        File file = getHeadImgFile();
-        try {
-            FileOutputStream fos = new FileOutputStream(file);
-            bmp.compress(Bitmap.CompressFormat.PNG, 100, fos);
-            fos.flush();
-            fos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        Uri uri = Uri.fromFile(file);
-        UCrop.of(uri, uri)
-                .useSourceImageAspectRatio()
-                .start(this);
-
-    }
-
-    private File getHeadImgFile() {
-        // 首先保存图片
-        File appDir = new File(Environment.getExternalStorageDirectory(), "wilddog");
-        if (!appDir.exists()) {
-            appDir.mkdir();
-        }
-        String fileName = "head.png";
-        File file = new File(appDir, fileName);
-        return file;
-    }
 
 }

@@ -4,13 +4,23 @@ package com.zd.wilddogdemo.utils;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.ImageView;
 
+import com.yalantis.ucrop.UCrop;
 import com.zd.wilddogdemo.R;
 import com.zd.wilddogdemo.ui.fragment.AboutMeFragment;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -109,6 +119,45 @@ public class Util {
 
     public static void setImageView(View view, ImageView imageView, Object loader) {
         GlideApp.with(view).load(loader).placeholder(R.drawable.head).circleCrop().into(imageView);
+    }
+
+    public static void saveImageToGallery(Activity activity, Bitmap bmp) {
+        File file = getHeadImgFile();
+        try {
+            FileOutputStream fos = new FileOutputStream(file);
+            bmp.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            fos.flush();
+            fos.close();
+            Uri uri = Uri.fromFile(file);
+//             其次把文件插入到系统图库
+            try {
+                MediaStore.Images.Media.insertImage(activity.getContentResolver(),
+                        uri.getPath(), "head.png", null);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+//                最后通知图库更新
+            activity.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri));
+            UCrop.of(uri, uri)
+                    .useSourceImageAspectRatio()
+                    .start(activity);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public static File getHeadImgFile() {
+        // 首先保存图片
+        File appDir = new File(Environment.getExternalStorageDirectory(), "wilddog");
+        if (!appDir.exists()) {
+            appDir.mkdir();
+        }
+        String fileName = "head.png";
+        File file = new File(appDir, fileName);
+        return file;
     }
 
 }

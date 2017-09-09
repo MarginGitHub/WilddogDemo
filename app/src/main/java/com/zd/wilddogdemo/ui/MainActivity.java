@@ -106,15 +106,6 @@ public class MainActivity extends AppCompatActivity implements DoctorListAdapter
         if (requestCode == UCrop.REQUEST_CROP) {
             if (resultCode == RESULT_OK) {
                 final Uri output = UCrop.getOutput(data);
-                // 其次把文件插入到系统图库
-                try {
-                    MediaStore.Images.Media.insertImage(getContentResolver(),
-                            output.getPath(), "head.png", null);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                // 最后通知图库更新
-                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, output));
                 Net.instance().uploadUserHeadImage(mUser.getToken(), mUser.getUser_id(), output.getPath(), new Net.OnNext<Result<String>>() {
                             @Override
                             public void onNext(@io.reactivex.annotations.NonNull Result<String> result) {
