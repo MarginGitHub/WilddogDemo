@@ -29,6 +29,7 @@ import com.zd.wilddogdemo.beans.User;
 import com.zd.wilddogdemo.ui.LoginActivity;
 import com.zd.wilddogdemo.ui.MainActivity;
 import com.zd.wilddogdemo.utils.GlideApp;
+import com.zd.wilddogdemo.utils.Util;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -50,7 +51,7 @@ public class AboutMeFragment extends Fragment {
     private static final int CAPTURE_REQUEST_CODE = 1;
     private static final int ALBUM_REQUEST_CODE = 2;
     @BindView(R.id.head_iv)
-    ImageView mHeadIv;
+    public ImageView mHeadIv;
     @BindView(R.id.nick_name)
     TextView mNickName;
     @BindView(R.id.balance_account)
@@ -72,7 +73,6 @@ public class AboutMeFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_about_me, container, false);
         unbinder = ButterKnife.bind(this, view);
-        initViews();
         return view;
     }
 
@@ -87,15 +87,24 @@ public class AboutMeFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        initViews();
+    }
+
     private void initViews() {
         User user = ((MainActivity) getActivity()).mUser;
         mNickName.setText(user.getNick_name());
-        if (!TextUtils.isEmpty(user.getHead_img_url())) {
-            GlideApp.with(this)
-                    .load(user.getHead_img_url())
-                    .placeholder(R.drawable.head)
-                    .circleCrop()
-                    .into(mHeadIv);
+        //        设置用户头像
+        String path = ((MainActivity) getActivity()).mUser.getHead_img_path();
+        String imgUrl = ((MainActivity) getActivity()).mUser.getHead_img_url();
+        if (path != null) {
+            Util.setImageView(this, mHeadIv, path);
+        } else if (!TextUtils.isEmpty(imgUrl)) {
+            Util.setImageView(this, mHeadIv, imgUrl);
+        } else {
+            Util.setImageView(this, mHeadIv, null);
         }
         mBalanceAccount.setText(String.format("余额: %f元", user.getAmount()));
     }
@@ -199,12 +208,6 @@ public class AboutMeFragment extends Fragment {
         }
     }
 
-    public void changeHeadView(Uri uri) {
-        GlideApp.with(getContext())
-                .load(uri)
-                .placeholder(R.drawable.head)
-                .circleCrop().into(mHeadIv);
-    }
 
     private void saveImageToGallery(Bitmap bmp) {
         File file = getHeadImgFile();

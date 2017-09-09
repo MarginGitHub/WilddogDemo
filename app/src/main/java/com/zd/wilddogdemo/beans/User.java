@@ -1,5 +1,7 @@
 package com.zd.wilddogdemo.beans;
 
+import android.net.Uri;
+
 import java.io.Serializable;
 
 /**
@@ -26,6 +28,8 @@ public class User implements Serializable{
     private String mobile;
     private String nick_name;
     private String head_img_url;
+//    头像的本地地址
+    private String head_img_path;
     private String sex;
     private String ref_user_id;
     private int login_count;
@@ -71,6 +75,14 @@ public class User implements Serializable{
 
     public void setHead_img_url(String head_img_url) {
         this.head_img_url = head_img_url;
+    }
+
+    public String getHead_img_path() {
+        return head_img_path;
+    }
+
+    public void setHead_img_path(String head_img_path) {
+        this.head_img_path = head_img_path;
     }
 
     public String getSex() {

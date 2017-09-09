@@ -1,7 +1,15 @@
 package com.zd.wilddogdemo.utils;
 
 
+import android.app.Activity;
+import android.app.Fragment;
+import android.content.Context;
 import android.text.TextUtils;
+import android.view.View;
+import android.widget.ImageView;
+
+import com.zd.wilddogdemo.R;
+import com.zd.wilddogdemo.ui.fragment.AboutMeFragment;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -84,9 +92,23 @@ public class Util {
     }
 
     public static boolean isPasswordValid(String password) {
-        if (TextUtils.isEmpty(password) || password.length() < 6) {
-            return false;
-        }
-        return true;
+        return !(TextUtils.isEmpty(password) || password.length() < 6);
     }
+
+    public static void setImageView(Context context, ImageView imageView, Object loader) {
+        GlideApp.with(context).load(loader).placeholder(R.drawable.head).circleCrop().into(imageView);
+    }
+
+    public static void setImageView(Activity activity, ImageView imageView, Object loader) {
+        GlideApp.with(activity).load(loader).placeholder(R.drawable.head).circleCrop().into(imageView);
+    }
+
+    public static void setImageView(AboutMeFragment fragment, ImageView imageView, Object loader) {
+        GlideApp.with(fragment).load(loader).placeholder(R.drawable.head).circleCrop().into(imageView);
+    }
+
+    public static void setImageView(View view, ImageView imageView, Object loader) {
+        GlideApp.with(view).load(loader).placeholder(R.drawable.head).circleCrop().into(imageView);
+    }
+
 }

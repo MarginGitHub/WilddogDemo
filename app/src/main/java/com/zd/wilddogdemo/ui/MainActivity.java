@@ -78,17 +78,13 @@ public class MainActivity extends AppCompatActivity implements DoctorListAdapter
     public List<Doctor> mOnlineDoctorList = new ArrayList<>();
     private DoctorNotShownList mOnlineDoctorUidList = new DoctorNotShownList();
     private VideoConversationFragmentPagerAdapter mPagerAdapter;
-    private NetService mNetService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
-//        initUser();
         initViews();
-        mNetService = (NetService) NetServiceProvider.instance(this)
-                .provider(NetService.class, NetServiceConfig.SERVER_BASE_URL);
         setOnlineDoctorListListener();
     }
 
@@ -124,7 +120,9 @@ public class MainActivity extends AppCompatActivity implements DoctorListAdapter
                             public void onNext(@io.reactivex.annotations.NonNull Result<String> result) {
                                 if (result.getCode() == 100) {
                                     AboutMeFragment aboutMeFragment = (AboutMeFragment) mPagerAdapter.getItem(2);
-                                    aboutMeFragment.changeHeadView(output);
+                                    Util.setImageView(MainActivity.this, aboutMeFragment.mHeadIv, output.getPath());
+                                    mUser.setHead_img_path(output.getPath());
+                                    ObjectPreference.saveObject(getApplicationContext(), mUser);
                                 }
                             }
                         },

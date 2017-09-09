@@ -28,7 +28,10 @@ import com.zd.wilddogdemo.beans.Result;
 import com.zd.wilddogdemo.beans.User;
 import com.zd.wilddogdemo.net.Net;
 import com.zd.wilddogdemo.net.NetServiceConfig;
+import com.zd.wilddogdemo.storage.ObjectPreference;
 import com.zd.wilddogdemo.utils.GlideApp;
+import com.zd.wilddogdemo.utils.GlideRequests;
+import com.zd.wilddogdemo.utils.Util;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -63,15 +66,19 @@ public class DoctorActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        mUser = (User) getIntent().getSerializableExtra("user");
+        mUser = ObjectPreference.getObject(getApplicationContext(), User.class);
+
+//        设置用户头像
+        String path = mUser.getHead_img_path();
         String imgUrl = mUser.getHead_img_url();
-        if (!TextUtils.isEmpty(imgUrl)) {
-            GlideApp.with(this)
-                    .load(NetServiceConfig.SERVER_BASE_URL + imgUrl)
-                    .placeholder(R.drawable.head)
-                    .circleCrop()
-                    .into(mHeadIv);
+        if (path != null) {
+            Util.setImageView(this, mHeadIv, path);
+        } else if (!TextUtils.isEmpty(imgUrl)) {
+            Util.setImageView(this, mHeadIv, imgUrl);
+        } else {
+            Util.setImageView(this, mHeadIv, null);
         }
+
         mNickName.setText(mUser.getNick_name());
         mBalanceAccount.setText(String.format("余额: %f元", mUser.getAmount()));
     }
@@ -185,7 +192,9 @@ public class DoctorActivity extends AppCompatActivity {
                                 @Override
                                 public void onNext(@NonNull Result<String> result) {
                                     if (result.getCode() == 100) {
-                                        changeHeadView(output);
+                                        mUser.setHead_img_path(output.getPath());
+                                        ObjectPreference.saveObject(getApplicationContext(), mUser);
+                                        Util.setImageView(DoctorActivity.this, mHeadIv, output.getPath());
                                     }
                                 }
                             },
