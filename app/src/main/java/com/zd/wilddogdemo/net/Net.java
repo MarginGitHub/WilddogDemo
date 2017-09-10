@@ -1,9 +1,7 @@
 package com.zd.wilddogdemo.net;
 
 import android.content.Context;
-import android.content.Intent;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.wilddog.wilddogauth.WilddogAuth;
 import com.wilddog.wilddogauth.core.Task;
@@ -11,17 +9,18 @@ import com.wilddog.wilddogauth.core.listener.OnCompleteListener;
 import com.wilddog.wilddogauth.core.result.AuthResult;
 import com.wilddog.wilddogcore.WilddogApp;
 import com.zd.wilddogdemo.beans.Doctor;
-import com.zd.wilddogdemo.beans.LoginInfo;
 import com.zd.wilddogdemo.beans.Result;
 import com.zd.wilddogdemo.beans.User;
-import com.zd.wilddogdemo.ui.DoctorActivity;
-import com.zd.wilddogdemo.ui.LoginActivity;
-import com.zd.wilddogdemo.ui.MainActivity;
 import com.zd.wilddogdemo.utils.Util;
 
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+
 import java.io.File;
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
@@ -33,12 +32,9 @@ import io.reactivex.annotations.NonNull;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
-import io.socket.client.On;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
-import okio.BufferedSink;
-import retrofit2.http.Query;
 
 
 /**
@@ -48,11 +44,13 @@ import retrofit2.http.Query;
 public class Net {
     private static final String TAG = Net.class.getSimpleName();
     private static Net instance;
+    private HashMap<String, List<Subscription>> mSubscriptionHashMap;
     private NetService mNetService;
 
     private Net(Context context) {
         mNetService = (NetService) NetServiceProvider.instance(context)
                 .provider(NetService.class, NetServiceConfig.SERVER_BASE_URL);
+        mSubscriptionHashMap = new HashMap<>();
     }
 
     public static void init(Context context) {
@@ -63,8 +61,19 @@ public class Net {
         return instance;
     }
 
-    public void register(String mobile, String password, String ref, final OnNext<Result<User>> next,
-                         final OnError error) {
+    private void addSubscription(String requestID, Subscription s) {
+        List<Subscription> subscriptionList = mSubscriptionHashMap.get(requestID);
+        if (subscriptionList != null) {
+            subscriptionList.add(s);
+        } else {
+            subscriptionList = new ArrayList<>();
+            subscriptionList.add(s);
+        }
+        mSubscriptionHashMap.put(requestID, subscriptionList);
+    }
+
+    public void register(String mobile, String password, final String ref, final OnNext<Result<User>> next,
+                           final OnError error) {
         String ts = String.valueOf(System.currentTimeMillis() / 1000);
         String apiKey = "test";
         HashMap<String, String> params = new HashMap<>();
@@ -75,6 +84,7 @@ public class Net {
         params.put("ref", ref);
         String sign = Util.sign(params);
         mNetService.register(ts, apiKey, sign, mobile, password, ref)
+                .take(1)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<Result<User>>() {
@@ -99,7 +109,8 @@ public class Net {
                 });
     }
 
-    public void login(String mobile, String password, final OnNext<Result<User>> next, final OnError err) {
+    public void login(String mobile, String password, final OnNext<User> next,
+                      final OnError err) {
         String ts = String.valueOf(System.currentTimeMillis() / 1000);
         String apiKey = "test";
         int flag = 1;
@@ -112,16 +123,50 @@ public class Net {
         params.put("flag", String.valueOf(flag));
         String sign = Util.sign(params);
         mNetService.login(ts, apiKey, sign, mobile, password, flag)
+                .flatMap(new Function<Result<User>, ObservableSource<User>>() {
+                    @Override
+                    public ObservableSource<User> apply(@NonNull final Result<User> userResult) throws Exception {
+                        if (userResult.isSuccessful()) {
+                            final User user = userResult.getData();
+                            return new Observable<User>() {
+                                @Override
+                                protected void subscribeActual(final Observer<? super User> observer) {
+                                    WilddogAuth.getInstance(WilddogApp.getInstance())
+                                            .signInWithCustomToken(user.getWilddog_token())
+                                            .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                                                @Override
+                                                public void onComplete(Task<AuthResult> authResultTask) {
+                                                    if (authResultTask.isSuccessful()) {
+                                                        String token = authResultTask.getResult()
+                                                                .getWilddogUser()
+                                                                .getToken(false)
+                                                                .getResult()
+                                                                .getToken();
+                                                        user.setWilddogVideoToken(token);
+                                                        observer.onNext(user);
+                                                        observer.onComplete();
+                                                    } else {
+                                                        observer.onError(new Throwable("登录失败", authResultTask.getException()));
+                                                    }
+                                                }
+                                            });
+                                }
+                            };
+                        }
+                        throw new Exception(userResult.getMsg());
+                    }
+                })
                 .subscribeOn(Schedulers.io())
-                .subscribe(new Observer<Result<User>>() {
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<User>() {
                     @Override
                     public void onSubscribe(@NonNull Disposable d) {
 
                     }
 
                     @Override
-                    public void onNext(@NonNull Result<User> userResult) {
-                        next.onNext(userResult);
+                    public void onNext(@NonNull User user) {
+                        next.onNext(user);
                     }
 
                     @Override
@@ -134,33 +179,60 @@ public class Net {
 
                     }
                 });
+
+//                .subscribe(new Observer<Result<User>>() {
+//                    @Override
+//                    public void onSubscribe(@NonNull Disposable d) {
+//
+//                    }
+//
+//                    @Override
+//                    public void onNext(@NonNull Result<User> userResult) {
+//                        next.onNext(userResult);
+//                    }
+//
+//                    @Override
+//                    public void onError(@NonNull Throwable e) {
+//                        err.onError(e);
+//                    }
+//
+//                    @Override
+//                    public void onComplete() {
+//
+//                    }
+//                });
     }
 
-    public void wilddogLogin(final User user, final OnNext<Task<AuthResult>> next, final OnError err) {
-        Observable.create(new ObservableOnSubscribe<Task<AuthResult>>() {
+    public void wilddogLogin(final User user, final OnNext<Boolean> next, final OnError err) {
+        Observable.create(new ObservableOnSubscribe<Boolean>() {
             @Override
-            public void subscribe(@NonNull final ObservableEmitter<Task<AuthResult>> e) throws Exception {
+            public void subscribe(@NonNull final ObservableEmitter<Boolean> e) throws Exception {
                 WilddogAuth.getInstance(WilddogApp.getInstance())
                         .signInWithCustomToken(user.getWilddog_token())
                         .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                             @Override
                             public void onComplete(Task<AuthResult> authResultTask) {
-                                e.onNext(authResultTask);
+                                if (authResultTask.isSuccessful()) {
+                                    e.onNext(true);
+                                    e.onComplete();
+                                } else {
+                                    e.onError(new Throwable("登录失败", authResultTask.getException()));
+                                }
                             }
                         });
             }
         })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<Task<AuthResult>>() {
+                .subscribe(new Observer<Boolean>() {
                     @Override
                     public void onSubscribe(@NonNull Disposable d) {
 
                     }
 
                     @Override
-                    public void onNext(@NonNull Task<AuthResult> authResultTask) {
-                        next.onNext(authResultTask);
+                    public void onNext(@NonNull Boolean success) {
+                        next.onNext(success);
                     }
 
                     @Override

@@ -33,6 +33,10 @@ public class Result<T> {
         this.data = data;
     }
 
+    public boolean isSuccessful() {
+        return code == 100;
+    }
+
 
     @Override
     public String toString() {

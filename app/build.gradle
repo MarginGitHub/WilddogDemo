@@ -1,6 +1,10 @@
 apply plugin: 'com.android.application'
 apply plugin: 'com.jakewharton.butterknife'
 
+//configurations.all {
+//    resolutionStrategy.force 'com.android.support:support-annotations:23.1.0'
+//}
+
 android {
     compileSdkVersion 25
     buildToolsVersion "26.0.0"

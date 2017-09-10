@@ -126,36 +126,12 @@ public class LoginActivity extends AppCompatActivity implements EasyPermissions.
         if (mUser == null || mUser.isOverdue() || mUser.isDoctor() != isDoctor
                 || !mUser.getMobile().equals(mobile) || !mUser.getPwd().equals(pwd)) {
             Net.instance().login(mobile, pwd,
-                    new Net.OnNext<Result<User>>() {
+                    new Net.OnNext<User>() {
                         @Override
-                        public void onNext(@NonNull Result<User> result) {
-                            if (result.getCode() == 100) {
-                                User user = result.getData();
-                                user.setDoctor(isDoctor);
-                                user.setPwd(pwd);
-                                wilddogLogin(user);
-                            }
-                        }
-                    },
-                    new Net.OnError() {
-                        @Override
-                        public void onError(@NonNull Throwable e) {
-                            Log.d("login", "onError: " + e.toString());
-                            mProgressDialog.dismiss();
-                        }
-                    });
-        } else {
-            wilddogLogin(mUser);
-        }
-    }
-
-    private void wilddogLogin(final User user) {
-        Net.instance().wilddogLogin(user, new Net.OnNext<Task<AuthResult>>() {
-                    @Override
-                    public void onNext(@NonNull Task<AuthResult> result) {
-                        if (result.isSuccessful()) {
-                            String token = result.getResult().getWilddogUser().getToken(false).getResult().getToken();
-                            user.setWilddogVideoToken(token);
+                        public void onNext(@NonNull User user) {
+                            user.setDoctor(isDoctor);
+                            user.setPwd(pwd);
+                            ObjectPreference.saveObject(LoginActivity.this, user);
                             syncUserData(user);
                             startVideoService(user);
                             Intent intent;
@@ -168,22 +144,47 @@ public class LoginActivity extends AppCompatActivity implements EasyPermissions.
                             }
                             startActivity(intent);
                             finish();
+                            mProgressDialog.dismiss();
                         }
-                        mProgressDialog.dismiss();
-                    }
-                },
-                new Net.OnError() {
-                    @Override
-                    public void onError(@NonNull Throwable e) {
-                        Log.d("wilddogLogin", "onError: " + e.toString());
-                        mProgressDialog.dismiss();
-                    }
-                });
+                    },
+                    new Net.OnError() {
+                        @Override
+                        public void onError(@NonNull Throwable e) {
+                            Log.d("login", "onError: " + e.toString());
+                            Toast.makeText(LoginActivity.this, "登录失败", Toast.LENGTH_LONG).show();
+                            mProgressDialog.dismiss();
+                        }
+                    });
+        } else {
+            Net.instance().wilddogLogin(mUser, new Net.OnNext<Boolean>() {
+                        @Override
+                        public void onNext(@NonNull Boolean result) {
+                            syncUserData(mUser);
+                            startVideoService(mUser);
+                            Intent intent;
+                            if (mUser.isDoctor()) {
+                                intent = new Intent(LoginActivity.this, DoctorActivity.class);
+                                intent.putExtra("user", mUser);
+                            } else {
+                                intent = new Intent(LoginActivity.this, MainActivity.class);
+                                intent.putExtra("user", mUser);
+                            }
+                            startActivity(intent);
+                            finish();
+                            mProgressDialog.dismiss();
+                        }
+                    },
+                    new Net.OnError() {
+                        @Override
+                        public void onError(@NonNull Throwable e) {
+                            Toast.makeText(LoginActivity.this, "登录失败", Toast.LENGTH_LONG).show();
+                            mProgressDialog.dismiss();
+                        }
+                    });
+        }
     }
 
     private void syncUserData(final User user) {
-//        保存用户信息到本地
-        ObjectPreference.saveObject(LoginActivity.this, user);
 //        野狗方面数据的存储
         WilddogSync.goOnline();
         SyncReference reference;
