@@ -26,6 +26,7 @@ import com.wilddog.wilddogauth.WilddogAuth;
 import com.yalantis.ucrop.UCrop;
 import com.zd.wilddogdemo.R;
 import com.zd.wilddogdemo.beans.User;
+import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.ui.LoginActivity;
 import com.zd.wilddogdemo.ui.MainActivity;
 import com.zd.wilddogdemo.utils.GlideApp;
@@ -99,10 +100,10 @@ public class AboutMeFragment extends Fragment {
         //        设置用户头像
         String path = ((MainActivity) getActivity()).mUser.getHead_img_path();
         String imgUrl = ((MainActivity) getActivity()).mUser.getHead_img_url();
-        if (path != null) {
+        if (!TextUtils.isEmpty(path)) {
             Util.setImageView(this, mHeadIv, path);
         } else if (!TextUtils.isEmpty(imgUrl)) {
-            Util.setImageView(this, mHeadIv, imgUrl);
+            Util.setImageView(this, mHeadIv, NetServiceConfig.HEAD_IMAGE_BASE_URL + imgUrl);
         } else {
             Util.setImageView(this, mHeadIv, null);
         }

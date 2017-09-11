@@ -7,7 +7,6 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -29,15 +28,9 @@ import com.zd.wilddogdemo.beans.User;
 import com.zd.wilddogdemo.net.Net;
 import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.storage.ObjectPreference;
-import com.zd.wilddogdemo.utils.GlideApp;
-import com.zd.wilddogdemo.utils.GlideRequests;
 import com.zd.wilddogdemo.utils.Util;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -71,10 +64,10 @@ public class DoctorActivity extends AppCompatActivity {
 //        设置用户头像
         String path = mUser.getHead_img_path();
         String imgUrl = mUser.getHead_img_url();
-        if (path != null) {
+        if (!TextUtils.isEmpty(path)) {
             Util.setImageView(this, mHeadIv, path);
         } else if (!TextUtils.isEmpty(imgUrl)) {
-            Util.setImageView(this, mHeadIv, imgUrl);
+            Util.setImageView(this, mHeadIv, NetServiceConfig.HEAD_IMAGE_BASE_URL + imgUrl);
         } else {
             Util.setImageView(this, mHeadIv, null);
         }
@@ -187,6 +180,7 @@ public class DoctorActivity extends AppCompatActivity {
                                 public void onNext(@NonNull Result<String> result) {
                                     if (result.getCode() == 100) {
                                         mUser.setHead_img_path(output.getPath());
+                                        mUser.setHead_img_url(result.getData());
                                         ObjectPreference.saveObject(getApplicationContext(), mUser);
                                         Util.setImageView(DoctorActivity.this, mHeadIv, output.getPath());
                                     }

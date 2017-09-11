@@ -29,4 +29,6 @@ public class ConversationCons {
     public static final int STREAM_RECEIVED = 0x9;
 //    停止拨号
     public static final int CLOSE = 0x0c;
+//    账号余额不足
+    public static final int BALANCE_NOT_ENOUGH = 0x0d;
 }

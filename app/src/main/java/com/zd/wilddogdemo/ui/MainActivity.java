@@ -43,7 +43,6 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
-import static com.zd.wilddogdemo.storage.ObjectPreference.getObject;
 
 
 public class MainActivity extends AppCompatActivity implements DoctorListAdapter.ICallPeer, ChildEventListener {
@@ -103,6 +102,9 @@ public class MainActivity extends AppCompatActivity implements DoctorListAdapter
     @Override
     protected void onActivityResult(final int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (data == null) {
+            return;
+        }
         if (requestCode == UCrop.REQUEST_CROP) {
             if (resultCode == RESULT_OK) {
                 final Uri output = UCrop.getOutput(data);
@@ -113,6 +115,7 @@ public class MainActivity extends AppCompatActivity implements DoctorListAdapter
                                     AboutMeFragment aboutMeFragment = (AboutMeFragment) mPagerAdapter.getItem(2);
                                     Util.setImageView(MainActivity.this, aboutMeFragment.mHeadIv, output.getPath());
                                     mUser.setHead_img_path(output.getPath());
+                                    mUser.setHead_img_url(result.getData());
                                     ObjectPreference.saveObject(getApplicationContext(), mUser);
                                 }
                             }

@@ -25,14 +25,18 @@ import com.zd.wilddogdemo.beans.User;
 import com.zd.wilddogdemo.broadreceiver.KeepAliveBroadcastReceiver;
 import com.zd.wilddogdemo.cons.ConversationCons;
 import com.zd.wilddogdemo.net.Net;
+import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.storage.ObjectPreference;
 import com.zd.wilddogdemo.ui.DialActivity;
 
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import io.reactivex.annotations.NonNull;
 
 import static android.R.attr.data;
+import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
 
 
 /**
@@ -43,7 +47,6 @@ public class DialService extends Service implements Conversation.Listener {
 
     private static final String TAG = "DialService";
     private Conversation mVideoConversation;
-    private KeepAliveBroadcastReceiver mReceiver;
     private WilddogVideo mWilddogVideo;
     private LocalStream mLocalStream;
     private RemoteStream mRemoteStream;
@@ -62,6 +65,10 @@ public class DialService extends Service implements Conversation.Listener {
                     break;
 //                挂断
                 case ConversationCons.HANG_UP:
+                    if (mTimer != null) {
+                        mTimer.cancel();
+                        mTimer = null;
+                    }
                     closeConversation();
                     uploadVideoConversationRecord();
                     break;
@@ -82,6 +89,8 @@ public class DialService extends Service implements Conversation.Listener {
     private User mUser;
     private long mStartTime;
     private String mDoctorUid;
+    private int mMaxConversationTime;
+    private Timer mTimer;
 
 
     @Override
@@ -139,10 +148,11 @@ public class DialService extends Service implements Conversation.Listener {
     private void callPeer(DialActivity.DialInfo info) {
         createLocalStream();
         mDoctorUid = info.getDoctorUid();
+        mMaxConversationTime = info.getMaxConversationTime();
         HashMap<String, String> data = new HashMap<>();
         data.put("nickname", info.getUser().getNick_name());
         String imgUrl = info.getUser().getHead_img_url();
-        data.put("faceurl", "http://www.feizl.com/upload2007/2014_06/140625163961254.jpg");
+        data.put("faceurl", NetServiceConfig.HEAD_IMAGE_BASE_URL + imgUrl);
         String user = new Gson().toJson(data);
         mVideoConversation = mWilddogVideo.call(info.getDoctorUid(), mLocalStream, user);
         mVideoConversation.setConversationListener(this);
@@ -190,6 +200,8 @@ public class DialService extends Service implements Conversation.Listener {
     @Override
     public void onStreamReceived(RemoteStream remoteStream) {
         mRemoteStream = remoteStream;
+        mLocalStream.enableAudio(true);
+        mRemoteStream.enableAudio(true);
         Message msg = Message.obtain();
         msg.what = ConversationCons.STREAM_RECEIVED;
         msg.obj = new VideoStream(mLocalStream, mRemoteStream);
@@ -200,10 +212,34 @@ public class DialService extends Service implements Conversation.Listener {
         }
         mStartTime = System.currentTimeMillis() / 1000;
         onCall = true;
+        if(mTimer == null) {
+            mTimer = new Timer();
+            mTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    closeConversation();
+                    uploadVideoConversationRecord();
+                    Message msg = Message.obtain();
+                    msg.what = ConversationCons.HANG_UP;
+                    msg.arg1 = ConversationCons.BALANCE_NOT_ENOUGH;
+                    try {
+                        mClientMessenger.send(msg);
+                        uploadVideoConversationRecord();
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                    mTimer = null;
+                }
+            }, mMaxConversationTime * 60 * 1000);
+        }
     }
 
     @Override
     public void onClosed() {
+        if (mTimer != null) {
+            mTimer.cancel();
+            mTimer = null;
+        }
         closeConversation();
         Message msg = Message.obtain();
         msg.what = ConversationCons.HANG_UP;
