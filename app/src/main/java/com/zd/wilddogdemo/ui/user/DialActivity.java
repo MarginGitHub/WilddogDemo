@@ -1,6 +1,5 @@
-package com.zd.wilddogdemo.ui;
+package com.zd.wilddogdemo.ui.user;
 
-import android.app.Dialog;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.DialogInterface;
@@ -23,11 +22,10 @@ import android.widget.Toast;
 
 import com.wilddog.video.WilddogVideoView;
 import com.zd.wilddogdemo.R;
-import com.zd.wilddogdemo.beans.Doctor;
-import com.zd.wilddogdemo.beans.User;
+import com.zd.wilddogdemo.beans.DialInfo;
 import com.zd.wilddogdemo.cons.ConversationCons;
 import com.zd.wilddogdemo.service.DialService;
-import com.zd.wilddogdemo.storage.ObjectPreference;
+import com.zd.wilddogdemo.ui.BaseActivity;
 import com.zd.wilddogdemo.utils.GlideApp;
 
 import butterknife.BindView;
@@ -38,7 +36,7 @@ import butterknife.OnClick;
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-public class DialActivity extends AppCompatActivity implements ServiceConnection {
+public class DialActivity extends BaseActivity implements ServiceConnection {
     @BindView(R.id.remote_view)
     WilddogVideoView mRemoteView;
     @BindView(R.id.local_view)
@@ -70,12 +68,15 @@ public class DialActivity extends AppCompatActivity implements ServiceConnection
                     break;
                 case ConversationCons.REJECTED:
                     Toast.makeText(DialActivity.this, "ConversationCons.REJECTED", Toast.LENGTH_SHORT).show();
+                    finish();
                     break;
                 case ConversationCons.BUSY:
                     Toast.makeText(DialActivity.this, "ConversationCons.BUSY", Toast.LENGTH_SHORT).show();
+                    finish();
                     break;
                 case ConversationCons.TIMEOUT:
                     Toast.makeText(DialActivity.this, "ConversationCons.TIMEOUT", Toast.LENGTH_SHORT).show();
+                    finish();
                     break;
                 case ConversationCons.HANG_UP:
                     resetVideoViews();
@@ -83,8 +84,15 @@ public class DialActivity extends AppCompatActivity implements ServiceConnection
                     if (message.arg1 == ConversationCons.BALANCE_NOT_ENOUGH) {
                         new AlertDialog.Builder(DialActivity.this)
                                 .setMessage("账户余额不足，请充值")
-                                .setPositiveButton("知道了", null)
+                                .setPositiveButton("知道了", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                        finish();
+                                    }
+                                })
                                 .show();
+                    } else {
+                        finish();
                     }
                 default:
                     break;
@@ -92,8 +100,7 @@ public class DialActivity extends AppCompatActivity implements ServiceConnection
             return true;
         }
     }));
-    private User mUser;
-    private Doctor mDoctor;
+    private DialInfo mDialInfo;
 
 
     @Override
@@ -101,9 +108,8 @@ public class DialActivity extends AppCompatActivity implements ServiceConnection
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dial);
         ButterKnife.bind(this);
+        mDialInfo = (DialInfo)getIntent().getSerializableExtra("dial_info");
         bindVideoService();
-        mUser = (User) getIntent().getSerializableExtra("user");
-        mDoctor = (Doctor) getIntent().getSerializableExtra("doctor");
         initViews();
     }
 
@@ -126,15 +132,16 @@ public class DialActivity extends AppCompatActivity implements ServiceConnection
         unbindService(this);
     }
 
-    private void initViews() {
-        if (!TextUtils.isEmpty(mDoctor.getAd_url())) {
+    protected void initViews() {
+        String avatarUrl = mDialInfo.getDoctor().getAd_url();
+        if (!TextUtils.isEmpty(avatarUrl)) {
             GlideApp.with(this)
-                    .load(mDoctor.getAd_url())
+                    .load(avatarUrl)
                     .placeholder(R.drawable.head)
                     .circleCrop()
                     .into(mDoctorHeadIv);
         }
-        mDoctorNickName.setText(mDoctor.getNick_name());
+        mDoctorNickName.setText(mDialInfo.getDoctor().getNick_name());
     }
 
     private void setVideoViews() {
@@ -163,71 +170,13 @@ public class DialActivity extends AppCompatActivity implements ServiceConnection
         onCall = false;
     }
 
-    private void dial(final DialInfo info) {
-        User user = ObjectPreference.getObject(this, User.class);
-//        int amount = user.getAmount().intValue();
-        int amount = 1;
-        if (amount <= 0) {
-            Toast.makeText(this, "您账号所剩余额不足1元，请先充值再进行拨号", Toast.LENGTH_LONG).show();
-            return;
-        }
-        info.setMaxConversationTime(amount);
-        Dialog dialog = new AlertDialog.Builder(this)
-                .setMessage(String.format("您当前账户所剩余额%d元,预期可以进行%d分钟视频通话,是否确定进行拨号？", amount, amount))
-                .setNegativeButton("取消", null)
-                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        sendMessage(ConversationCons.RING_UP, info, null);
-                    }
-                })
-                .create();
-        dialog.setCanceledOnTouchOutside(false);
-        dialog.show();
-    }
-
-
-
-    public class DialInfo {
-        String mDoctorUid;
-        User mUser;
-        int maxConversationTime;
-
-        public DialInfo(String doctorUid, User user) {
-            mDoctorUid = doctorUid;
-            mUser = user;
-        }
-
-        public String getDoctorUid() {
-            return mDoctorUid;
-        }
-
-        public void setDoctorUid(String doctorUid) {
-            mDoctorUid = doctorUid;
-        }
-
-        public User getUser() {
-            return mUser;
-        }
-
-        public void setUser(User user) {
-            mUser = user;
-        }
-
-        public int getMaxConversationTime() {
-            return maxConversationTime;
-        }
-
-        public void setMaxConversationTime(int maxConversationTime) {
-            this.maxConversationTime = maxConversationTime;
-        }
-    }
 
 
     @Override
     public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
         mServerMessenger = new Messenger(iBinder);
         sendMessage(ConversationCons.CONNECTED, null, mClientMessenger);
+        sendMessage(ConversationCons.RING_UP, mDialInfo, null);
     }
 
     @Override
@@ -236,18 +185,16 @@ public class DialActivity extends AppCompatActivity implements ServiceConnection
     }
 
 
-    @OnClick({R.id.hung_up, R.id.ring_up, R.id.close})
+    @OnClick({R.id.hung_up, R.id.close})
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.hung_up:
                 resetVideoViews();
                 closeConversation();
                 break;
-            case R.id.ring_up:
-                dial(new DialInfo(mDoctor.getUser_id(), mUser));
-                break;
             case R.id.close:
                 sendMessage(ConversationCons.CLOSE, null, null);
+                finish();
                 break;
         }
     }

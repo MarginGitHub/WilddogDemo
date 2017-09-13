@@ -56,17 +56,4 @@ public interface NetService {
             @Part("ts") RequestBody ts, @Part("apiKey") RequestBody apiKey, @Part("sign") RequestBody sign,
             @Part("userId") RequestBody userId, @Part MultipartBody.Part upfile);
 
-
-    @Multipart
-    @POST("doctor/uploadAD")
-    Observable<Result<String>> uploadDoctorHeadImage(
-            @Part("ts") RequestBody ts, @Part("apiKey") RequestBody apiKey, @Part("sign") RequestBody sign,
-            @Part("userId") RequestBody userId, @Part MultipartBody.Part upfile);
-
-    @GET("user/addVideoCall")
-    Observable<Result<Object>> uploadVideoConversationRecord(
-            @Query("ts") String ts, @Query("apiKey") String apiKey, @Query("sign") String sig,
-            @Query("userId") String userId, @Query("docId") String docId, @Query("start") long start,
-            @Query("duration") long duration );
-
 }

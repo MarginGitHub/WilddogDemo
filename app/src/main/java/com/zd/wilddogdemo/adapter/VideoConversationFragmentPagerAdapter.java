@@ -4,12 +4,14 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 
-import com.zd.wilddogdemo.ui.fragment.AboutMeFragment;
-import com.zd.wilddogdemo.ui.fragment.FollowedDoctorsFragment;
-import com.zd.wilddogdemo.ui.fragment.OnlineDoctorListFragment;
+import com.zd.wilddogdemo.ui.user.fragments.AboutMeFragment;
+import com.zd.wilddogdemo.ui.user.fragments.FollowedDoctorsFragment;
+import com.zd.wilddogdemo.ui.user.fragments.OnlineDoctorListFragment;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static android.R.attr.id;
 
 /**
  * Created by dongjijin on 2017/9/6 0006.
@@ -37,5 +39,9 @@ public class VideoConversationFragmentPagerAdapter extends FragmentPagerAdapter 
 
     public OnlineDoctorListFragment getOnlineDoctorListFragment() {
         return (OnlineDoctorListFragment) mFragments.get(0);
+    }
+
+    public String getFragmentTag(int viewId, int postion) {
+        return "android:switcher:" + viewId + ":" + postion;
     }
 }

@@ -49,4 +49,5 @@
     <string name="rpassword">重复密码</string>
     <string name="referee">推荐人</string>
     <string name="register_info">没有账号？请先注册</string>
+    <string name="dial">拨号</string>
 </resources>

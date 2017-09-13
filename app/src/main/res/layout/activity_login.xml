@@ -24,6 +24,28 @@
             android:focusableInTouchMode="true"
             android:orientation="vertical">
 
+            <ImageView
+                android:id="@+id/avatar_iv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
+                android:src="@drawable/head"/>
+            <TextView
+                android:id="@+id/nick_name_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="20dp"
+                android:text="新用户"/>
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#eeeeee"
+                android:layout_marginBottom="5dp"/>
+
             <android.support.design.widget.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
@@ -64,29 +86,24 @@
                 android:text="@string/sign_in"
                 android:textStyle="bold"/>
 
-            <RelativeLayout
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp">
-
+                android:layout_height="wrap_content">
                 <CheckBox
-                    android:id="@+id/doctor_cb"
+                    android:id="@+id/auto_login"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_centerVertical="true"
-                    android:checked="false"
-                    android:text="医生"
-                    />
-
+                    android:layout_gravity="center_vertical"
+                    android:checked="true"
+                    android:text="自动登录"/>
                 <Button
                     android:id="@+id/register"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
+                    android:layout_gravity="end|center_vertical"
                     android:background="@null"
                     android:text="@string/register_info"/>
-            </RelativeLayout>
+            </FrameLayout>
 
         </LinearLayout>
     </ScrollView>

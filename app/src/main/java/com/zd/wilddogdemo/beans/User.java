@@ -28,8 +28,6 @@ public class User implements Serializable{
     private String mobile;
     private String nick_name;
     private String head_img_url;
-//    头像的本地地址
-    private String head_img_path;
     private String sex;
     private String ref_user_id;
     private int login_count;
@@ -41,9 +39,7 @@ public class User implements Serializable{
     private Double amount;
 
     /*****************************************/
-    private boolean isDoctor;
     private String wilddogVideoToken;
-    private String pwd;
 
     public String getUser_id() {
         return user_id;
@@ -75,14 +71,6 @@ public class User implements Serializable{
 
     public void setHead_img_url(String head_img_url) {
         this.head_img_url = head_img_url;
-    }
-
-    public String getHead_img_path() {
-        return head_img_path;
-    }
-
-    public void setHead_img_path(String head_img_path) {
-        this.head_img_path = head_img_path;
     }
 
     public String getSex() {
@@ -157,14 +145,6 @@ public class User implements Serializable{
         this.amount = amount;
     }
 
-    public boolean isDoctor() {
-        return isDoctor;
-    }
-
-    public void setDoctor(boolean doctor) {
-        isDoctor = doctor;
-    }
-
     public String getWilddogVideoToken() {
         return wilddogVideoToken;
     }
@@ -173,139 +153,9 @@ public class User implements Serializable{
         this.wilddogVideoToken = wilddogVideoToken;
     }
 
-
-    public String getPwd() {
-        return pwd;
-    }
-
-    public void setPwd(String pwd) {
-        this.pwd = pwd;
-    }
-
     public boolean isOverdue() {
         final long maxAliveTime = 24 * 60 * 60;
         long currentTime = System.currentTimeMillis() / 1000;
         return (currentTime - last_login_time) > maxAliveTime;
     }
-
-    @Override
-    public String toString() {
-        return "User{" +
-                "user_id='" + user_id + '\'' +
-                ", mobile='" + mobile + '\'' +
-                ", nick_name='" + nick_name + '\'' +
-                ", head_img_url='" + head_img_url + '\'' +
-                ", sex='" + sex + '\'' +
-                ", ref_user_id='" + ref_user_id + '\'' +
-                ", login_count=" + login_count +
-                ", last_login_time=" + last_login_time +
-                ", create_time='" + create_time + '\'' +
-                ", token='" + token + '\'' +
-                ", agora_token='" + agora_token + '\'' +
-                ", wilddog_token='" + wilddog_token + '\'' +
-                ", isDoctor=" + isDoctor +
-                ", wilddogVideoToken='" + wilddogVideoToken + '\'' +
-                ", pwd='" + pwd + '\'' +
-                '}';
-    }
-
-    //    private boolean isDoctor;
-//    private String uid;
-//    private String nick_name;
-//    private String head_img_url;
-//    private String wilddog_login_token;
-//    private String token;
-//    private Long last_login_time;
-//    private String phone;
-//    private String password;
-//
-//    public boolean isDoctor() {
-//        return isDoctor;
-//    }
-//
-//    public void setDoctor(boolean doctor) {
-//        isDoctor = doctor;
-//    }
-//
-//    public String getUid() {
-//        return uid;
-//    }
-//
-//    public String getNick_name() {
-//        return nick_name;
-//    }
-//
-//    public void setNick_name(String nick_name) {
-//        this.nick_name = nick_name;
-//    }
-//
-//    public String getHead_img_url() {
-//        return head_img_url;
-//    }
-//
-//    public void setHead_img_url(String head_img_url) {
-//        this.head_img_url = head_img_url;
-//    }
-//
-//    public void setUid(String uid) {
-//        this.uid = uid;
-//    }
-//
-//    public String getWilddog_login_token() {
-//        return wilddog_login_token;
-//    }
-//
-//    public void setWilddog_login_token(String wilddog_login_token) {
-//        this.wilddog_login_token = wilddog_login_token;
-//    }
-//
-//    public String getToken() {
-//        return token;
-//    }
-//
-//    public void setToken(String token) {
-//        this.token = token;
-//    }
-//
-//    public Long getLast_login_time() {
-//        return last_login_time;
-//    }
-//
-//    public void setLast_login_time(Long last_login_time) {
-//        this.last_login_time = last_login_time;
-//    }
-//
-//    public String getPhone() {
-//        return phone;
-//    }
-//
-//    public void setPhone(String phone) {
-//        this.phone = phone;
-//    }
-//
-//    public String getPassword() {
-//        return password;
-//    }
-//
-//    public void setPassword(String password) {
-//        this.password = password;
-//    }
-//
-//    public boolean isOverdue(){
-//        final long maxAliveTime = 24 * 60 * 60;
-//        long currentTime = System.currentTimeMillis() / 1000;
-//        return (currentTime - last_login_time) > maxAliveTime;
-//    }
-//
-//    @Override
-//    public String toString() {
-//        return "User{" +
-//                "isDoctor=" + isDoctor +
-//                ", uid='" + uid + '\'' +
-//                ", wilddog_login_token='" + wilddog_login_token + '\'' +
-//                ", token='" + token + '\'' +
-//                ", last_login_time=" + last_login_time +
-//                ", phone='" + phone + '\'' +
-//                '}';
-//    }
 }

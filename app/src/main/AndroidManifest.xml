@@ -39,23 +39,24 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".ui.DoctorActivity"
+        <activity
+            android:name=".ui.doctor.DoctorActivity"
             android:launchMode="singleTop"/>
         <activity
             android:name=".ui.KeppAliveActivity"
             android:theme="@style/keepAliveActivityStyle"/>
-
-        <activity android:name=".ui.MainActivity"
+        <activity
+            android:name=".ui.user.MainActivity"
             android:launchMode="singleTop"/>
         <activity
-            android:name=".ui.DialActivity"
+            android:name=".ui.user.DialActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
-            android:launchMode="singleTop"
             android:label="@string/title_activity_dial"
+            android:launchMode="singleTop"
             android:theme="@style/FullscreenTheme">
         </activity>
         <activity
-            android:name=".ui.VideoReceiverActivity"
+            android:name=".ui.doctor.VideoReceiverActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_video_receiver"
             android:theme="@style/FullscreenTheme">
@@ -66,9 +67,10 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
         <activity
             android:name=".ui.RegisterActivity"
-            android:launchMode="singleTop"
-            android:label="@string/title_activity_register">
+            android:label="@string/title_activity_register"
+            android:launchMode="singleTop">
         </activity>
+        <activity android:name=".ui.user.DoctorInfoActivity" android:launchMode="singleTop"/>
 
         <receiver android:name="com.wilddog.client.receiver.WilddogAuthCastReceiver">
             <intent-filter>
@@ -77,18 +79,14 @@
             </intent-filter>
         </receiver>
         <receiver
-            android:name=".broadreceiver.KeepAliveBroadcastReceiver"
-            android:enabled="true"
-            android:exported="true"/>
+            android:name=".broadreceiver.KeepAliveBroadcastReceiver"/>
 
         <service android:name=".service.DialService"/>
-        <service android:name=".service.VideoReceiverService"/>
-        <!--<service-->
-            <!--android:name=".service.AliveService"-->
-            <!--android:enabled="true"-->
-            <!--android:exported="true">-->
-        <!--</service>-->
-
+        <!-- <service -->
+        <!-- android:name=".service.AliveService" -->
+        <!-- android:enabled="true" -->
+        <!-- android:exported="true"> -->
+        <!-- </service> -->
     </application>
 
 </manifest>

@@ -1,30 +1,48 @@
 package com.zd.wilddogdemo.beans;
 
+import java.io.Serializable;
+
 /**
  * Created by dongjijin on 2017/9/8 0008.
  */
 
-public class Login {
-    private boolean isDoctor;
-    private String wilddogLoginToken;
+public class Login implements Serializable{
+    private String nickName;
     private String mobile;
-    private String pwd;
-    private long last_login_time;
+    private String password;
+    private String avatarUrl;
+    private boolean autoLogin;
 
-    public boolean isDoctor() {
-        return isDoctor;
+    public Login() {
     }
 
-    public void setDoctor(boolean doctor) {
-        isDoctor = doctor;
+    public Login(String mobile, String password, boolean autoLogin) {
+        this.mobile = mobile;
+        this.password = password;
+        this.autoLogin = autoLogin;
     }
 
-    public String getWilddogLoginToken() {
-        return wilddogLoginToken;
+    public Login(String mobile, String password, String avatarUrl, boolean autoLogin) {
+        this.mobile = mobile;
+        this.password = password;
+        this.avatarUrl = avatarUrl;
+        this.autoLogin = autoLogin;
     }
 
-    public void setWilddogLoginToken(String wilddogLoginToken) {
-        this.wilddogLoginToken = wilddogLoginToken;
+    public Login(String nickName, String mobile, String password, String avatarUrl, boolean autoLogin) {
+        this.nickName = nickName;
+        this.mobile = mobile;
+        this.password = password;
+        this.avatarUrl = avatarUrl;
+        this.autoLogin = autoLogin;
+    }
+
+    public String getNickName() {
+        return nickName;
+    }
+
+    public void setNickName(String nickName) {
+        this.nickName = nickName;
     }
 
     public String getMobile() {
@@ -35,26 +53,27 @@ public class Login {
         this.mobile = mobile;
     }
 
-    public String getPwd() {
-        return pwd;
+    public String getPassword() {
+        return password;
     }
 
-    public void setPwd(String pwd) {
-        this.pwd = pwd;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
-    public long getLast_login_time() {
-        return last_login_time;
+    public String getAvatarUrl() {
+        return avatarUrl;
     }
 
-    public void setLast_login_time(long last_login_time) {
-        this.last_login_time = last_login_time;
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
-    public boolean isOverdue() {
-        final long maxAliveTime = 24 * 60 * 60;
-        long currentTime = System.currentTimeMillis() / 1000;
-        return (currentTime - last_login_time) > maxAliveTime;
+    public boolean isAutoLogin() {
+        return autoLogin;
     }
 
+    public void setAutoLogin(boolean autoLogin) {
+        this.autoLogin = autoLogin;
+    }
 }

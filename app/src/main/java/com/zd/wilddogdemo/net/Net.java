@@ -21,6 +21,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
@@ -44,13 +45,13 @@ import okhttp3.RequestBody;
 public class Net {
     private static final String TAG = Net.class.getSimpleName();
     private static Net instance;
-    private HashMap<String, List<Subscription>> mSubscriptionHashMap;
     private NetService mNetService;
+    private Map<String, List<Disposable>> mRequests;
 
     private Net(Context context) {
         mNetService = (NetService) NetServiceProvider.instance(context)
                 .provider(NetService.class, NetServiceConfig.SERVER_BASE_URL);
-        mSubscriptionHashMap = new HashMap<>();
+        mRequests = new HashMap<>();
     }
 
     public static void init(Context context) {
@@ -61,19 +62,30 @@ public class Net {
         return instance;
     }
 
-    private void addSubscription(String requestID, Subscription s) {
-        List<Subscription> subscriptionList = mSubscriptionHashMap.get(requestID);
-        if (subscriptionList != null) {
-            subscriptionList.add(s);
-        } else {
-            subscriptionList = new ArrayList<>();
-            subscriptionList.add(s);
+
+    public void addRequest(String id, Disposable d) {
+        List<Disposable> disposableList = mRequests.get(id);
+        if (disposableList == null) {
+            disposableList = new ArrayList<>();
         }
-        mSubscriptionHashMap.put(requestID, subscriptionList);
+        disposableList.add(d);
+        mRequests.put(id, disposableList);
+    }
+
+    public void removeRequest(String id) {
+        List<Disposable> disposableList = mRequests.get(id);
+        if (disposableList != null) {
+            for (Disposable d: disposableList) {
+                if (!d.isDisposed()) {
+                    d.dispose();
+                }
+            }
+        }
+        mRequests.remove(id);
     }
 
     public void register(String mobile, String password, final String ref, final OnNext<Result<User>> next,
-                           final OnError error) {
+                         final OnError error, final String id) {
         String ts = String.valueOf(System.currentTimeMillis() / 1000);
         String apiKey = "test";
         HashMap<String, String> params = new HashMap<>();
@@ -90,6 +102,7 @@ public class Net {
                 .subscribe(new Observer<Result<User>>() {
                     @Override
                     public void onSubscribe(@NonNull Disposable d) {
+                        addRequest(id, d);
                     }
 
                     @Override
@@ -110,7 +123,7 @@ public class Net {
     }
 
     public void login(String mobile, String password, final OnNext<User> next,
-                      final OnError err) {
+                      final OnError err, final String id) {
         String ts = String.valueOf(System.currentTimeMillis() / 1000);
         String apiKey = "test";
         int flag = 1;
@@ -161,7 +174,7 @@ public class Net {
                 .subscribe(new Observer<User>() {
                     @Override
                     public void onSubscribe(@NonNull Disposable d) {
-
+                        addRequest(id, d);
                     }
 
                     @Override
@@ -180,30 +193,9 @@ public class Net {
                     }
                 });
 
-//                .subscribe(new Observer<Result<User>>() {
-//                    @Override
-//                    public void onSubscribe(@NonNull Disposable d) {
-//
-//                    }
-//
-//                    @Override
-//                    public void onNext(@NonNull Result<User> userResult) {
-//                        next.onNext(userResult);
-//                    }
-//
-//                    @Override
-//                    public void onError(@NonNull Throwable e) {
-//                        err.onError(e);
-//                    }
-//
-//                    @Override
-//                    public void onComplete() {
-//
-//                    }
-//                });
     }
 
-    public void wilddogLogin(final User user, final OnNext<Boolean> next, final OnError err) {
+    public void wilddogLogin(final User user, final OnNext<Boolean> next, final OnError err, final String id) {
         Observable.create(new ObservableOnSubscribe<Boolean>() {
             @Override
             public void subscribe(@NonNull final ObservableEmitter<Boolean> e) throws Exception {
@@ -227,7 +219,7 @@ public class Net {
                 .subscribe(new Observer<Boolean>() {
                     @Override
                     public void onSubscribe(@NonNull Disposable d) {
-
+                        addRequest(id, d);
                     }
 
                     @Override
@@ -247,7 +239,8 @@ public class Net {
                 });
     }
 
-    public void getDoctorInfo(String userId, String docId, String token, final OnNext<Result<Doctor>> next, final OnError err) {
+    public void getDoctorInfo(String userId, String docId, String token,
+                              final OnNext<Result<Doctor>> next, final OnError err, final String id) {
         String ts = String.valueOf(System.currentTimeMillis() / 1000);
         String apiKey = "test";
 
@@ -266,7 +259,7 @@ public class Net {
 
                     @Override
                     public void onSubscribe(@NonNull Disposable d) {
-
+                        addRequest(id, d);
                     }
 
                     @Override
@@ -286,7 +279,7 @@ public class Net {
                 });
     }
 
-    public void getUserInfo(String token, String userId, final OnNext<Result<User>> next, final OnError err) {
+    public void getUserInfo(String token, String userId, final OnNext<Result<User>> next, final OnError err, final String id) {
         String ts = String.valueOf(System.currentTimeMillis() / 1000);
         String apiKey = "test";
         HashMap<String, String> params = new HashMap<>();
@@ -301,7 +294,7 @@ public class Net {
                 .subscribe(new Observer<Result<User>>() {
                     @Override
                     public void onSubscribe(@NonNull Disposable d) {
-
+                        addRequest(id, d);
                     }
 
                     @Override
@@ -321,7 +314,8 @@ public class Net {
                 });
     }
 
-    public void uploadUserHeadImage(String token, String userId, String headUrl, final OnNext<Result<String>> next, final OnError err) {
+    public void uploadUserHeadImage(String token, String userId, String headUrl,
+                                    final OnNext<Result<String>> next, final OnError err, final String id) {
         String ts = String.valueOf(System.currentTimeMillis() / 1000);
         String apiKey = "test";
         HashMap<String, String> params = new HashMap<>();
@@ -344,115 +338,12 @@ public class Net {
                 .subscribe(new Observer<Result<String>>() {
                     @Override
                     public void onSubscribe(@NonNull Disposable d) {
-
+                        addRequest(id, d);
                     }
 
                     @Override
                     public void onNext(@NonNull Result<String> stringResult) {
                         next.onNext(stringResult);
-                    }
-
-                    @Override
-                    public void onError(@NonNull Throwable e) {
-                        err.onError(e);
-                    }
-
-                    @Override
-                    public void onComplete() {
-
-                    }
-                });
-    }
-
-    public void uploadDoctorHeadImage(String token, String userId, String headUrl, final OnNext<Result<String>> next, final OnError err) {
-        String ts = String.valueOf(System.currentTimeMillis() / 1000);
-        String apiKey = "test";
-        HashMap<String, String> params = new HashMap<>();
-        params.put("ts", ts);
-        params.put("apiKey", apiKey);
-        params.put("token", token);
-        params.put("userId", userId);
-        String sign = Util.sign(params);
-        File file = new File(headUrl);
-
-        RequestBody tsBody = RequestBody.create(MediaType.parse("multipart/form-data"),ts);
-        RequestBody apiKeyBody = RequestBody.create(MediaType.parse("multipart/form-data"),apiKey);
-        RequestBody signBody = RequestBody.create(MediaType.parse("multipart/form-data"),sign);
-        RequestBody userIdBody = RequestBody.create(MediaType.parse("multipart/form-data"),userId);
-        RequestBody fileBody = RequestBody.create(MediaType.parse("image/png"),file);
-        MultipartBody.Part part = MultipartBody.Part.createFormData("upfile", file.getName(), fileBody);
-        mNetService.uploadDoctorHeadImage(tsBody, apiKeyBody, signBody, userIdBody, part)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<Result<String>>() {
-                    @Override
-                    public void onSubscribe(@NonNull Disposable d) {
-
-                    }
-
-                    @Override
-                    public void onNext(@NonNull Result<String> stringResult) {
-                        next.onNext(stringResult);
-                    }
-
-                    @Override
-                    public void onError(@NonNull Throwable e) {
-                        err.onError(e);
-                    }
-
-                    @Override
-                    public void onComplete() {
-
-                    }
-                });
-    }
-
-    public void uploadVideoConversationRecord(final String token, final String userId, String docId, long start, long duration,
-                                              final OnNext<Result<User>> next, final OnError err) {
-        final String ts = String.valueOf(System.currentTimeMillis() / 1000);
-        final String apiKey = "test";
-        HashMap<String, String> params = new HashMap<>();
-        params.put("ts", ts);
-        params.put("apiKey", apiKey);
-        params.put("token", token);
-        params.put("userId", userId);
-        params.put("docId", docId);
-        params.put("start", String.valueOf(start));
-        params.put("duration", String.valueOf(duration));
-        String sign = Util.sign(params);
-        mNetService.uploadVideoConversationRecord(ts, apiKey, sign, userId, docId, start, duration)
-                .flatMap(new Function<Result<Object>, ObservableSource<Result<User>>>() {
-                    @Override
-                    public ObservableSource<Result<User>> apply(@NonNull Result<Object> objectResult) throws Exception {
-                        if (objectResult.getCode() == 100) {
-                            HashMap<String, String> params = new HashMap<>();
-                            params.put("ts", ts);
-                            params.put("apiKey", apiKey);
-                            params.put("token", token);
-                            params.put("userId", userId);
-                            String sign = Util.sign(params);
-                            return mNetService.getUserInfo(ts, apiKey, sign, userId).subscribeOn(Schedulers.io());
-                        } else {
-                            try {
-                                throw new Throwable("Error Code: " + objectResult.getCode() + ", Message: " + objectResult.getMsg());
-                            } catch (Throwable throwable) {
-                                throwable.printStackTrace();
-                            }
-                            return null;
-                        }
-                    }
-                })
-                .subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.io())
-                .subscribe(new Observer<Result<User>>() {
-                    @Override
-                    public void onSubscribe(@NonNull Disposable d) {
-
-                    }
-
-                    @Override
-                    public void onNext(@NonNull Result<User> objectResult) {
-                        next.onNext(objectResult);
                     }
 
                     @Override

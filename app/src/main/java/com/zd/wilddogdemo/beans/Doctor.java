@@ -28,6 +28,9 @@ public class Doctor implements Serializable{
     private String video_count;
     private String follow_count;
 
+    public Doctor() {
+    }
+
     public String getUser_id() {
         return user_id;
     }
@@ -100,6 +103,18 @@ public class Doctor implements Serializable{
         follow_count = doctor.getFollow_count();
         video_count = doctor.getVideo_count();
         video_price = doctor.getVideo_price();
+    }
+
+    public Doctor cpoy(Doctor doctor) {
+        user_id = doctor.user_id;
+        nick_name = doctor.getNick_name();
+        sex = doctor.getSex();
+        ref_user_id = doctor.getRef_user_id();
+        ad_url = doctor.getAd_url();
+        follow_count = doctor.getFollow_count();
+        video_count = doctor.getVideo_count();
+        video_price = doctor.getVideo_price();
+        return this;
     }
 
     @Override

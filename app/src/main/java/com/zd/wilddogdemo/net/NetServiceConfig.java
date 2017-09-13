@@ -7,4 +7,5 @@ package com.zd.wilddogdemo.net;
 public class NetServiceConfig {
     public static final String SERVER_BASE_URL = "http://he.ahblue.cn/index.php/";
     public static final String HEAD_IMAGE_BASE_URL = "http://he.ahblue.cn/Public/Uploads/head/";
+    public static final String AD_BASE_URL = "http://he.ahblue.cn/Public/Uploads/ad/";
 }

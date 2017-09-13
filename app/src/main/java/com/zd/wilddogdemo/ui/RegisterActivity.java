@@ -3,6 +3,7 @@ package com.zd.wilddogdemo.ui;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,6 +17,7 @@ import android.widget.ScrollView;
 import android.widget.Toast;
 
 import com.zd.wilddogdemo.R;
+import com.zd.wilddogdemo.beans.Login;
 import com.zd.wilddogdemo.beans.Result;
 import com.zd.wilddogdemo.beans.User;
 import com.zd.wilddogdemo.net.Net;
@@ -38,8 +40,6 @@ public class RegisterActivity extends AppCompatActivity {
 
 
     public static final int RESULT_CODE = 200;
-    @BindView(R.id.login_progress)
-    ProgressBar mLoginProgress;
     @BindView(R.id.phone)
     AutoCompleteTextView mPhone;
     @BindView(R.id.password1)
@@ -61,47 +61,15 @@ public class RegisterActivity extends AppCompatActivity {
 
     }
 
-
-    /**
-     * Shows the progress UI and hides the login form.
-     */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    private void showProgress(final boolean show) {
-        // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
-        // for very easy animations. If available, use these APIs to fade-in
-        // the progress spinner.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
-            int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
-
-            mLoginForm.setVisibility(show ? View.GONE : View.VISIBLE);
-            mLoginForm.animate().setDuration(shortAnimTime).alpha(
-                    show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    mLoginForm.setVisibility(show ? View.GONE : View.VISIBLE);
-                }
-            });
-
-            mLoginProgress.setVisibility(show ? View.VISIBLE : View.GONE);
-            mLoginProgress.animate().setDuration(shortAnimTime).alpha(
-                    show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    mLoginProgress.setVisibility(show ? View.VISIBLE : View.GONE);
-                }
-            });
-        } else {
-            // The ViewPropertyAnimator APIs are not available, so simply show
-            // and hide the relevant UI components.
-            mLoginProgress.setVisibility(show ? View.VISIBLE : View.GONE);
-            mLoginForm.setVisibility(show ? View.GONE : View.VISIBLE);
-        }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Net.instance().removeRequest(RegisterActivity.class.getSimpleName());
     }
-
 
     @OnClick(R.id.register)
     public void onViewClicked() {
-        String phone = mPhone.getText().toString().trim();
+        final String phone = mPhone.getText().toString().trim();
         final String pwd1 = mPassword1.getText().toString().trim();
         String pwd2 = mPassword2.getText().toString().trim();
         final String referee = mReferee.getText().toString().trim();
@@ -120,7 +88,10 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        showProgress(true);
+        final ProgressDialog dialog = new ProgressDialog(this);
+        dialog.setMessage("正在注册，请稍等");
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
         Net.instance().register(phone, pwd1, referee,
                 new Net.OnNext<Result<User>>() {
                     @Override
@@ -128,23 +99,24 @@ public class RegisterActivity extends AppCompatActivity {
                         if (result.getCode() == 100) {
                             Toast.makeText(RegisterActivity.this, "注册成功", Toast.LENGTH_SHORT).show();
                             User user = result.getData();
-                            user.setPwd(pwd1);
-                            ObjectPreference.saveObject(RegisterActivity.this, result.getData());
-                            setResult(RESULT_CODE);
+                            Login login = new Login(user.getNick_name(), phone, pwd1, user.getHead_img_url(), false);
+                            Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+                            intent.putExtra("login", login);
+                            setResult(RESULT_CODE, intent);
                             finish();
                         } else {
                             Toast.makeText(RegisterActivity.this, result.getMsg(), Toast.LENGTH_SHORT).show();
                         }
 
-                        showProgress(false);
+                        dialog.dismiss();
                     }
                 },
                 new Net.OnError() {
                     @Override
                     public void onError(@NonNull Throwable e) {
-                        showProgress(false);
+                        dialog.dismiss();
                     }
-                });
+                }, RegisterActivity.class.getSimpleName());
 
     }
 }

@@ -11,7 +11,9 @@ import android.widget.TextView;
 
 import com.zd.wilddogdemo.R;
 import com.zd.wilddogdemo.beans.Doctor;
+import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.utils.GlideApp;
+import com.zd.wilddogdemo.utils.Util;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -104,12 +106,16 @@ public class DoctorListAdapter extends RecyclerView.Adapter<DoctorListAdapter.Us
     class UserListViewHolder extends RecyclerView.ViewHolder {
         private TextView mNickNameTv;
         private TextView mPriceTv;
+        private ImageView mAdIv;
         private Doctor mDoctor;
+        private Context mContext;
 
         public UserListViewHolder(View itemView, final ICallPeer callPeer) {
             super(itemView);
+            mContext = (Context)callPeer;
             mNickNameTv = (TextView) itemView.findViewById(R.id.nick_name);
             mPriceTv = (TextView)itemView.findViewById(R.id.price);
+            mAdIv = (ImageView)itemView.findViewById(R.id.ad_iv);
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -121,6 +127,12 @@ public class DoctorListAdapter extends RecyclerView.Adapter<DoctorListAdapter.Us
 
         public void setDoctor(Doctor doctor) {
             mDoctor = doctor;
+            GlideApp.with(mContext)
+                    .load(NetServiceConfig.AD_BASE_URL + mDoctor.getAd_url())
+                    .placeholder(R.drawable.banner)
+                    .optionalCenterInside()
+                    .into(mAdIv);
+//            Util.setImageView(mContext, mAdIv, NetServiceConfig.AD_BASE_URL + mDoctor.getAd_url(), R.drawable.banner, false);
             mNickNameTv.setText(mDoctor.getNick_name());
             mPriceTv.setText(String.format("%s元/次", mDoctor.getVideo_price()));
         }

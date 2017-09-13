@@ -2,10 +2,10 @@ package com.zd.wilddogdemo.utils;
 
 
 import android.app.Activity;
-import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -15,7 +15,11 @@ import android.widget.ImageView;
 
 import com.yalantis.ucrop.UCrop;
 import com.zd.wilddogdemo.R;
-import com.zd.wilddogdemo.ui.fragment.AboutMeFragment;
+import com.zd.wilddogdemo.beans.User;
+import com.zd.wilddogdemo.storage.ObjectPreference;
+import com.zd.wilddogdemo.storage.memory.ObjectProvider;
+import com.zd.wilddogdemo.ui.LoginActivity;
+import com.zd.wilddogdemo.ui.user.fragments.AboutMeFragment;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,12 +30,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import static android.R.attr.data;
+import static java.security.AccessController.getContext;
 
 
 /**
@@ -86,7 +89,7 @@ public class Util {
             }
         });
         StringBuilder builder = new StringBuilder();
-        for(Map.Entry<String, String> entry : list) {
+        for (Map.Entry<String, String> entry : list) {
             builder.append(entry.getValue());
         }
         return md5(builder.toString());
@@ -105,7 +108,15 @@ public class Util {
         return !(TextUtils.isEmpty(password) || password.length() < 6);
     }
 
-    public static void setImageView(Context context, ImageView imageView, Object loader) {
+    public static void setImageView(Context context, ImageView imageView, Object loader, int placeholder, boolean circleCrop) {
+        GlideRequest<Drawable> load = GlideApp.with(context).load(loader).placeholder(R.drawable.head);
+        if (circleCrop) {
+            load = load.circleCrop();
+        }
+        load.into(imageView);
+    }
+
+    public static void setAvatarView(Context context, ImageView imageView, Object loader) {
         GlideApp.with(context).load(loader).placeholder(R.drawable.head).circleCrop().into(imageView);
     }
 
@@ -121,43 +132,78 @@ public class Util {
         GlideApp.with(view).load(loader).placeholder(R.drawable.head).circleCrop().into(imageView);
     }
 
-    public static void saveImageToGallery(Activity activity, Bitmap bmp) {
-        File file = getHeadImgFile();
-        try {
-            FileOutputStream fos = new FileOutputStream(file);
-            bmp.compress(Bitmap.CompressFormat.PNG, 100, fos);
-            fos.flush();
-            fos.close();
-            Uri uri = Uri.fromFile(file);
-//             其次把文件插入到系统图库
-            try {
-                MediaStore.Images.Media.insertImage(activity.getContentResolver(),
-                        uri.getPath(), "head.png", null);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-//                最后通知图库更新
-            activity.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri));
-            UCrop.of(uri, uri)
-                    .useSourceImageAspectRatio()
-                    .start(activity);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//
 
-    }
-
-    public static File getHeadImgFile() {
+    public static File getHeadImgFile(String fileName) {
         // 首先保存图片
         File appDir = new File(Environment.getExternalStorageDirectory(), "wilddog");
         if (!appDir.exists()) {
             appDir.mkdir();
         }
-        String fileName = "head.png";
         File file = new File(appDir, fileName);
         return file;
     }
+
+    public static void saveUser(Context context, User user) {
+//        内存中保存
+        ObjectProvider.sharedInstance().set(user);
+//        SharePreference中保存
+        ObjectPreference.saveObject(context, user);
+    }
+
+    public static User getUser(Context context) {
+//        内存中获取
+        User user = ObjectProvider.sharedInstance().get(User.class);
+        if (user == null) {
+            return ObjectPreference.getObject(context, User.class);
+        }
+        return user;
+    }
+
+    public static void pushActivity(Activity activity) {
+        ActivityStack activityStack = ObjectProvider.sharedInstance().get(ActivityStack.class);
+        if (activityStack == null) {
+            activityStack = new ActivityStack();
+        }
+        activityStack.add(activity);
+    }
+
+    public static void removeActivity(Activity activity) {
+        ActivityStack activityStack = ObjectProvider.sharedInstance().get(ActivityStack.class);
+        if (activityStack != null) {
+            activityStack.remove(activity);
+        }
+    }
+
+    public static void clearActivityStack() {
+        ActivityStack activityStack = ObjectProvider.sharedInstance().get(ActivityStack.class);
+        if (activityStack != null) {
+            activityStack.clear();
+        }
+    }
+
+    static class ActivityStack {
+        List<Activity> mActivities;
+
+        public ActivityStack() {
+            mActivities = new ArrayList<>();
+        }
+
+        public void add(Activity activity) {
+            mActivities.add(activity);
+        }
+
+        public void remove(Activity activity) {
+            mActivities.remove(activity);
+        }
+
+        public void clear() {
+            for (Activity a : mActivities) {
+                a.finish();
+            }
+            mActivities.clear();
+        }
+    }
+
 
 }

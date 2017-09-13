@@ -13,27 +13,23 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AutoCompleteTextView;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.wilddog.client.SyncReference;
 import com.wilddog.client.WilddogSync;
-import com.wilddog.wilddogauth.WilddogAuth;
-import com.wilddog.wilddogauth.core.Task;
-import com.wilddog.wilddogauth.core.listener.OnCompleteListener;
-import com.wilddog.wilddogauth.core.result.AuthResult;
-import com.wilddog.wilddogcore.WilddogApp;
 import com.zd.wilddogdemo.R;
 import com.zd.wilddogdemo.beans.Login;
-import com.zd.wilddogdemo.beans.Result;
 import com.zd.wilddogdemo.beans.User;
 import com.zd.wilddogdemo.net.Net;
-import com.zd.wilddogdemo.service.AliveService;
+import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.service.DialService;
-import com.zd.wilddogdemo.service.VideoReceiverService;
 import com.zd.wilddogdemo.storage.ObjectPreference;
+import com.zd.wilddogdemo.ui.user.MainActivity;
 import com.zd.wilddogdemo.utils.Util;
 
 import java.util.HashMap;
@@ -55,21 +51,25 @@ public class LoginActivity extends AppCompatActivity implements EasyPermissions.
     private static final int REQUEST_CODE = 1;
     @BindView(R.id.phone)
     AutoCompleteTextView mPhone;
-    @BindView(R.id.doctor_cb)
-    CheckBox mDoctorCb;
     @BindView(R.id.password)
     EditText mPassword;
     @BindView(R.id.register)
     TextView mRegister;
-    private User mUser;
+    @BindView(R.id.avatar_iv)
+    ImageView mAvatarIv;
+    @BindView(R.id.auto_login)
+    CheckBox mAutoLogin;
+    @BindView(R.id.nick_name_tv)
+    TextView mNickNameTv;
 
-    private ProgressDialog mProgressDialog;
+    private Login mLogin;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         ButterKnife.bind(this);
+        mLogin = ObjectPreference.getObject(this, Login.class);
         initViews();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             initPermissions();
@@ -79,34 +79,36 @@ public class LoginActivity extends AppCompatActivity implements EasyPermissions.
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE && resultCode == RegisterActivity.RESULT_CODE) {
+        if (requestCode == REQUEST_CODE && resultCode == RegisterActivity.RESULT_CODE && data != null) {
+            mLogin = (Login) data.getSerializableExtra("login");
             initViews();
+            ObjectPreference.saveObject(this, mLogin);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Net.instance().removeRequest(LoginActivity.class.getSimpleName());
     }
 
     private void initViews() {
-        mUser = ObjectPreference.getObject(this, User.class);
         mRegister.setEnabled(true);
-        mDoctorCb.setFocusable(true);
-        if ((mUser != null) && (!TextUtils.isEmpty(mUser.getMobile()))) {
-            mPhone.setText(mUser.getMobile());
-            mPassword.setText(mUser.getPwd());
-        }
-        mDoctorCb.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                if (b) {
-                    mRegister.setVisibility(View.INVISIBLE);
-                } else {
-                    mRegister.setVisibility(View.VISIBLE);
-                }
+        if ((mLogin != null) && (!TextUtils.isEmpty(mLogin.getMobile()))) {
+            if (mLogin.isAutoLogin()) {
+                login(mLogin.getMobile(), mLogin.getPassword(), true);
             }
-        });
+            Util.setImageView(this, mAvatarIv, NetServiceConfig.HEAD_IMAGE_BASE_URL + mLogin.getAvatarUrl());
+            mNickNameTv.setText(mLogin.getNickName());
+            mPhone.setText(mLogin.getMobile());
+            mPassword.setText(mLogin.getPassword());
+            mAutoLogin.setChecked(mLogin.isAutoLogin());
+        }
     }
 
 
-    private void login() {
-        final boolean isDoctor = mDoctorCb.isChecked();
+    private void loginWithCheck() {
+        boolean autoLogin = mAutoLogin.isChecked();
         final String mobile = mPhone.getText().toString().trim();
         final String pwd = mPassword.getText().toString().trim();
         if (!Util.isPhoneValid(mobile)) {
@@ -119,84 +121,52 @@ public class LoginActivity extends AppCompatActivity implements EasyPermissions.
             return;
         }
 
-        mProgressDialog = new ProgressDialog(this);
-        mProgressDialog.setMessage("正在登录中，请稍等");
-        mProgressDialog.show();
+        login(mobile, pwd, autoLogin);
 
-        if (mUser == null || mUser.isOverdue() || mUser.isDoctor() != isDoctor
-                || !mUser.getMobile().equals(mobile) || !mUser.getPwd().equals(pwd)) {
-            Net.instance().login(mobile, pwd,
-                    new Net.OnNext<User>() {
-                        @Override
-                        public void onNext(@NonNull User user) {
-                            user.setDoctor(isDoctor);
-                            user.setPwd(pwd);
-                            ObjectPreference.saveObject(LoginActivity.this, user);
-                            syncUserData(user);
-                            startVideoService(user);
-                            Intent intent;
-                            if (user.isDoctor()) {
-                                intent = new Intent(LoginActivity.this, DoctorActivity.class);
-                                intent.putExtra("user", user);
-                            } else {
-                                intent = new Intent(LoginActivity.this, MainActivity.class);
-                                intent.putExtra("user", user);
-                            }
-                            startActivity(intent);
-                            finish();
-                            mProgressDialog.dismiss();
+    }
+
+    private void login(final String mobile, final String pwd, final boolean autoLogin) {
+        final ProgressDialog dialog = new ProgressDialog(this);
+        dialog.setMessage("正在登录中，请稍等");
+        dialog.show();
+        Net.instance().login(mobile, pwd,
+                new Net.OnNext<User>() {
+                    @Override
+                    public void onNext(@NonNull User user) {
+//                        首先保存登录信息
+                        if (mLogin == null || !mLogin.getMobile().equals(mobile) ||
+                                !mLogin.getPassword().equals(pwd) || mLogin.isAutoLogin() != autoLogin) {
+                            Login login = new Login(user.getNick_name(), mobile, pwd, user.getHead_img_url(), autoLogin);
+                            ObjectPreference.saveObject(LoginActivity.this, login);
                         }
-                    },
-                    new Net.OnError() {
-                        @Override
-                        public void onError(@NonNull Throwable e) {
-                            Log.d("login", "onError: " + e.toString());
-                            Toast.makeText(LoginActivity.this, "登录失败", Toast.LENGTH_LONG).show();
-                            mProgressDialog.dismiss();
-                        }
-                    });
-        } else {
-            Net.instance().wilddogLogin(mUser, new Net.OnNext<Boolean>() {
-                        @Override
-                        public void onNext(@NonNull Boolean result) {
-                            syncUserData(mUser);
-                            startVideoService(mUser);
-                            Intent intent;
-                            if (mUser.isDoctor()) {
-                                intent = new Intent(LoginActivity.this, DoctorActivity.class);
-                                intent.putExtra("user", mUser);
-                            } else {
-                                intent = new Intent(LoginActivity.this, MainActivity.class);
-                                intent.putExtra("user", mUser);
-                            }
-                            startActivity(intent);
-                            finish();
-                            mProgressDialog.dismiss();
-                        }
-                    },
-                    new Net.OnError() {
-                        @Override
-                        public void onError(@NonNull Throwable e) {
-                            Toast.makeText(LoginActivity.this, "登录失败", Toast.LENGTH_LONG).show();
-                            mProgressDialog.dismiss();
-                        }
-                    });
-        }
+//                        保存用户信息
+                        Util.saveUser(getApplicationContext(), user);
+                        syncUserData(user);
+                        startVideoService();
+                        Intent intent;
+                        intent = new Intent(LoginActivity.this, MainActivity.class);
+                        startActivity(intent);
+                        finish();
+                        dialog.dismiss();
+                    }
+                },
+                new Net.OnError() {
+                    @Override
+                    public void onError(@NonNull Throwable e) {
+                        Log.d("login", "onError: " + e.toString());
+                        Toast.makeText(LoginActivity.this, "登录失败", Toast.LENGTH_LONG).show();
+                        dialog.dismiss();
+                    }
+                }, LoginActivity.class.getSimpleName());
     }
 
     private void syncUserData(final User user) {
 //        野狗方面数据的存储
         WilddogSync.goOnline();
         SyncReference reference;
-        if (user.isDoctor()) {
-            reference = WilddogSync.getInstance()
-                    .getReference(getResources()
-                            .getString(R.string.doctors_room));
-        } else {
-            reference = WilddogSync.getInstance()
-                    .getReference(getResources()
-                            .getString(R.string.users_room));
-        }
+        reference = WilddogSync.getInstance()
+                .getReference(getResources()
+                        .getString(R.string.users_room));
         HashMap<String, Object> map = new HashMap();
         map.put(user.getUser_id(), true);
         reference.updateChildren(map);
@@ -205,17 +175,11 @@ public class LoginActivity extends AppCompatActivity implements EasyPermissions.
     }
 
 
-    private void startVideoService(User user) {
+    private void startVideoService() {
 //        开启保活Service
 //        startService(new Intent(this, AliveService.class));
 //        判断是医生还是用户，以此来开启相应的Service
-        Intent intent;
-        if (user.isDoctor()) {
-            intent = new Intent(this, VideoReceiverService.class);
-        } else {
-            intent = new Intent(this, DialService.class);
-        }
-        intent.putExtra("user", user);
+        Intent intent = new Intent(this, DialService.class);
         startService(intent);
     }
 
@@ -223,7 +187,7 @@ public class LoginActivity extends AppCompatActivity implements EasyPermissions.
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.sign_in_button:
-                login();
+                loginWithCheck();
                 break;
             case R.id.register:
                 startActivityForResult(new Intent(this, RegisterActivity.class), REQUEST_CODE);

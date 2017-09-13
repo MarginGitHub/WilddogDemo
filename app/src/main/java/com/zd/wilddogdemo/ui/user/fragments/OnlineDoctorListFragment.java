@@ -1,4 +1,4 @@
-package com.zd.wilddogdemo.ui.fragment;
+package com.zd.wilddogdemo.ui.user.fragments;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -6,6 +6,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,29 +17,31 @@ import com.scwang.smartrefresh.layout.footer.ClassicsFooter;
 import com.scwang.smartrefresh.layout.listener.OnLoadmoreListener;
 import com.zd.wilddogdemo.R;
 import com.zd.wilddogdemo.adapter.DoctorListAdapter;
+import com.zd.wilddogdemo.beans.Doctor;
+import com.zd.wilddogdemo.beans.Result;
+import com.zd.wilddogdemo.net.Net;
 import com.zd.wilddogdemo.net.NetService;
 import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.net.NetServiceProvider;
-import com.zd.wilddogdemo.ui.MainActivity;
+import com.zd.wilddogdemo.ui.user.MainActivity;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
+import io.reactivex.annotations.NonNull;
 
 /**
  * Created by dongjijin on 2017/9/6 0006.
  */
 
-public class OnlineDoctorListFragment extends Fragment {
+public class OnlineDoctorListFragment extends BaseFragment {
 
     @BindView(R.id.doctor_list_container)
     RecyclerView mDoctorListContainer;
     @BindView(R.id.doctor_refresh_layout)
     SmartRefreshLayout mDoctorRefreshLayout;
     Unbinder unbinder;
-    private NetService mNetService;
     private DoctorListAdapter mAdapter;
-    private boolean isViewDestroied;
 
     @Override
     public void onAttach(Context context) {
@@ -55,16 +58,14 @@ public class OnlineDoctorListFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_online_doctor_list, container, false);
         unbinder = ButterKnife.bind(this, view);
-        mNetService = (NetService) NetServiceProvider.instance(getActivity())
-                .provider(NetService.class, NetServiceConfig.SERVER_BASE_URL);
-        isViewDestroied = false;
-        setupContainer();
+        initViews();
         return view;
     }
 
     @Override
     public void onDestroyView() {
-        isViewDestroied = true;
+        ((MainActivity) getActivity()).mDoctorListData.setAdapter(null);
+        Net.instance().removeRequest(OnlineDoctorListFragment.class.getSimpleName());
         super.onDestroyView();
         unbinder.unbind();
     }
@@ -74,20 +75,11 @@ public class OnlineDoctorListFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
     }
 
-    public boolean isViewDestroied() {
-        return isViewDestroied;
+    @Override
+    protected void initViews() {
+        setupContainer();
     }
 
-    public boolean isViewFull() {
-        int position = mAdapter.getItemCount() - 1;
-        int visibleItemPosition = ((LinearLayoutManager) mDoctorListContainer.getLayoutManager())
-                .findLastVisibleItemPosition();
-        return visibleItemPosition < position;
-    }
-
-    public DoctorListAdapter getDoctorListAdapter() {
-        return  mAdapter;
-    }
 
     private void setupRefreshLayout() {
         mDoctorRefreshLayout.setRefreshFooter(new ClassicsFooter(getContext()));
@@ -96,7 +88,26 @@ public class OnlineDoctorListFragment extends Fragment {
         mDoctorRefreshLayout.setOnLoadmoreListener(new OnLoadmoreListener() {
             @Override
             public void onLoadmore(RefreshLayout refreshlayout) {
-                mDoctorRefreshLayout.finishLoadmore();
+                String uid = ((MainActivity) getActivity()).mDoctorListData.getUid();
+                if (!TextUtils.isEmpty(uid)) {
+                    Net.instance().getDoctorInfo(mUser.getUser_id(), uid, mUser.getToken(), new Net.OnNext<Result<Doctor>>() {
+                                @Override
+                                public void onNext(@NonNull Result<Doctor> result) {
+                                    if (result.getCode() == 100) {
+                                        ((MainActivity) getActivity()).mDoctorListData.addDoctor(result.getData());
+                                    }
+                                    mDoctorRefreshLayout.finishLoadmore();
+                                }
+                            },
+                            new Net.OnError() {
+                                @Override
+                                public void onError(@NonNull Throwable e) {
+                                    mDoctorRefreshLayout.finishLoadmore();
+                                }
+                            }, OnlineDoctorListFragment.class.getSimpleName());
+                } else {
+                    mDoctorRefreshLayout.finishLoadmore();
+                }
             }
         });
     }
@@ -106,8 +117,8 @@ public class OnlineDoctorListFragment extends Fragment {
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         mDoctorListContainer.setLayoutManager(linearLayoutManager);
         mAdapter = new DoctorListAdapter((MainActivity)getActivity());
-        mAdapter.setData(((MainActivity)getActivity()).mOnlineDoctorList);
         mDoctorListContainer.setAdapter(mAdapter);
+        ((MainActivity) getActivity()).mDoctorListData.setAdapter(mAdapter);
     }
 
 }

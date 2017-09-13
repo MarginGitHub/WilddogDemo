@@ -8,7 +8,6 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
-import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -20,23 +19,20 @@ import com.wilddog.video.RemoteStream;
 import com.wilddog.video.WilddogVideo;
 import com.wilddog.video.WilddogVideoError;
 import com.zd.wilddogdemo.R;
+import com.zd.wilddogdemo.beans.DialInfo;
 import com.zd.wilddogdemo.beans.Result;
 import com.zd.wilddogdemo.beans.User;
-import com.zd.wilddogdemo.broadreceiver.KeepAliveBroadcastReceiver;
 import com.zd.wilddogdemo.cons.ConversationCons;
 import com.zd.wilddogdemo.net.Net;
 import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.storage.ObjectPreference;
-import com.zd.wilddogdemo.ui.DialActivity;
+import com.zd.wilddogdemo.utils.Util;
 
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import io.reactivex.annotations.NonNull;
-
-import static android.R.attr.data;
-import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
 
 
 /**
@@ -61,7 +57,7 @@ public class DialService extends Service implements Conversation.Listener {
                     break;
 //                呼叫
                 case ConversationCons.RING_UP:
-                    callPeer((DialActivity.DialInfo) message.obj);
+                    callPeer((DialInfo) message.obj);
                     break;
 //                挂断
                 case ConversationCons.HANG_UP:
@@ -70,7 +66,6 @@ public class DialService extends Service implements Conversation.Listener {
                         mTimer = null;
                     }
                     closeConversation();
-                    uploadVideoConversationRecord();
                     break;
                 case ConversationCons.CLOSE:
                     if (mVideoConversation != null) {
@@ -107,7 +102,7 @@ public class DialService extends Service implements Conversation.Listener {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
-            mUser = (User) intent.getSerializableExtra("user");
+            mUser = Util.getUser(getApplicationContext());
             initWilddogVideo(mUser.getWilddogVideoToken());
         }
         return START_STICKY;
@@ -115,17 +110,20 @@ public class DialService extends Service implements Conversation.Listener {
 
     @Override
     public boolean onUnbind(Intent intent) {
+        mUser = null;
         return true;
     }
 
     @Override
     public void onRebind(Intent intent) {
+        mUser = Util.getUser(getApplicationContext());
         super.onRebind(intent);
     }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        mUser = Util.getUser(getApplicationContext());
         return mServerMessenger.getBinder();
     }
 
@@ -139,22 +137,28 @@ public class DialService extends Service implements Conversation.Listener {
 
 
     private void createLocalStream() {
-        LocalStreamOptions options = new LocalStreamOptions.Builder()
-                .dimension(LocalStreamOptions.Dimension.DIMENSION_480P)
-                .build();
+        LocalStreamOptions.Dimension videoResolution = ObjectPreference.getObject(getApplicationContext(), "video_resolution",
+                LocalStreamOptions.Dimension.class);
+        LocalStreamOptions.Builder builder = new LocalStreamOptions.Builder();
+        if (videoResolution != null) {
+            builder.dimension(videoResolution);
+        } else {
+             builder.dimension(LocalStreamOptions.Dimension.DIMENSION_480P);
+        }
+        LocalStreamOptions options = builder.build();
         mLocalStream = mWilddogVideo.createLocalStream(options);
     }
 
-    private void callPeer(DialActivity.DialInfo info) {
+    private void callPeer(DialInfo info) {
         createLocalStream();
-        mDoctorUid = info.getDoctorUid();
+        mDoctorUid = info.getDoctor().getUser_id();
         mMaxConversationTime = info.getMaxConversationTime();
         HashMap<String, String> data = new HashMap<>();
-        data.put("nickname", info.getUser().getNick_name());
-        String imgUrl = info.getUser().getHead_img_url();
-        data.put("faceurl", NetServiceConfig.HEAD_IMAGE_BASE_URL + imgUrl);
+        data.put("nickname", mUser.getNick_name());
+        String avatarUrl = mUser.getHead_img_url();
+        data.put("faceurl", NetServiceConfig.HEAD_IMAGE_BASE_URL + avatarUrl);
         String user = new Gson().toJson(data);
-        mVideoConversation = mWilddogVideo.call(info.getDoctorUid(), mLocalStream, user);
+        mVideoConversation = mWilddogVideo.call(mDoctorUid, mLocalStream, user);
         mVideoConversation.setConversationListener(this);
     }
 
@@ -218,13 +222,11 @@ public class DialService extends Service implements Conversation.Listener {
                 @Override
                 public void run() {
                     closeConversation();
-                    uploadVideoConversationRecord();
                     Message msg = Message.obtain();
                     msg.what = ConversationCons.HANG_UP;
                     msg.arg1 = ConversationCons.BALANCE_NOT_ENOUGH;
                     try {
                         mClientMessenger.send(msg);
-                        uploadVideoConversationRecord();
                     } catch (RemoteException e) {
                         e.printStackTrace();
                     }
@@ -245,7 +247,6 @@ public class DialService extends Service implements Conversation.Listener {
         msg.what = ConversationCons.HANG_UP;
         try {
             mClientMessenger.send(msg);
-            uploadVideoConversationRecord();
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -257,25 +258,6 @@ public class DialService extends Service implements Conversation.Listener {
         Log.d(TAG, "onError: " + message);
     }
 
-    private void uploadVideoConversationRecord() {
-        long currentTime = System.currentTimeMillis() / 1000;
-        Net.instance().uploadVideoConversationRecord(
-                mUser.getToken(), mUser.getUser_id(), mDoctorUid, mStartTime, currentTime - mStartTime,
-                new Net.OnNext<Result<User>>() {
-                    @Override
-                    public void onNext(@NonNull Result<User> result) {
-                        if (result.getCode() == 100) {
-                            ObjectPreference.saveObject(getApplicationContext(), result.getData());
-                        }
-                    }
-                },
-                new Net.OnError() {
-                    @Override
-                    public void onError(@NonNull Throwable e) {
-                        Log.d(TAG, "onError: " + e.toString());
-                    }
-                });
-    }
 
     public class VideoStream {
         public LocalStream mLocalStream;
