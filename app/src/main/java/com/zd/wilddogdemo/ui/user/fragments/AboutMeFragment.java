@@ -49,9 +49,8 @@ import butterknife.OnClick;
 import butterknife.Unbinder;
 import io.reactivex.annotations.NonNull;
 
-import static android.R.attr.data;
-import static android.R.attr.theme;
 import static android.app.Activity.RESULT_OK;
+import static com.wilddog.video.LocalStreamOptions.Dimension.DIMENSION_360P;
 
 
 /**
@@ -121,6 +120,29 @@ public class AboutMeFragment extends BaseFragment {
         } else {
             Util.setImageView(this, mHeadIv, null);
         }
+        LocalStreamOptions.Dimension videoResolution = ObjectPreference.getObject(getContext(),
+                "video_resolution", LocalStreamOptions.Dimension.class);
+        String resolution = "视频通话分辨率:\t";
+        if (videoResolution != null) {
+            switch (videoResolution) {
+                case DIMENSION_360P:
+                    resolution += "360p";
+                    break;
+                case DIMENSION_480P:
+                    resolution += "480p";
+                    break;
+                case DIMENSION_720P:
+                    resolution += "720p";
+                    break;
+                case DIMENSION_1080P:
+                    resolution += "1080p";
+                    break;
+            }
+        } else {
+            resolution += "480p";
+        }
+        mVideoResolution.setText(resolution);
+
         mBalanceAccount.setText(String.format("余额: %f元", mUser.getAmount()));
     }
 
@@ -158,7 +180,7 @@ public class AboutMeFragment extends BaseFragment {
                     "1080p"
             };
             final LocalStreamOptions.Dimension[] resolutions = new LocalStreamOptions.Dimension[] {
-                    LocalStreamOptions.Dimension.DIMENSION_360P,
+                    DIMENSION_360P,
                     LocalStreamOptions.Dimension.DIMENSION_480P,
                     LocalStreamOptions.Dimension.DIMENSION_720P,
                     LocalStreamOptions.Dimension.DIMENSION_1080P
@@ -262,7 +284,8 @@ public class AboutMeFragment extends BaseFragment {
 //                最后通知图库更新
                 getActivity().sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri));
                 UCrop.of(uri, Uri.fromFile(Util.getHeadImgFile("user_avatar_circle.jpg")))
-                        .useSourceImageAspectRatio()
+                        .withAspectRatio(1,1)
+                        .withMaxResultSize(400, 400)
                         .start(getContext(), this);
                 break;
             case ALBUM_REQUEST_CODE:
@@ -273,7 +296,8 @@ public class AboutMeFragment extends BaseFragment {
                 File imgFile = Util.getHeadImgFile("user_avatar_circle.jpg");
                 if (selectUri != null) {
                     UCrop.of(selectUri, Uri.fromFile(imgFile))
-                            .useSourceImageAspectRatio()
+                            .withAspectRatio(1,1)
+                            .withMaxResultSize(400, 400)
                             .start(getContext(), this);
                 }
             case UCrop.REQUEST_CROP:
