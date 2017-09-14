@@ -13,11 +13,13 @@ import java.util.List;
 public class DoctorListData {
     private List<Doctor> mDoctors;
     private List<String> mDoctorUids;
+    private List<String> mOfflineDoctorUids;
     private DoctorListAdapter mAdapter;
 
     public DoctorListData() {
         mDoctors = Collections.synchronizedList(new ArrayList<Doctor>());
         mDoctorUids = Collections.synchronizedList(new ArrayList<String>());
+        mOfflineDoctorUids = Collections.synchronizedList(new ArrayList<String>());
     }
 
     public DoctorListAdapter getAdapter() {
@@ -43,6 +45,17 @@ public class DoctorListData {
         if (doctor == null) {
             return;
         }
+        if (mOfflineDoctorUids.size() != 0) {
+            String userId = doctor.getUser_id();
+            for (int i = 0; i < mOfflineDoctorUids.size(); i++) {
+                if (mOfflineDoctorUids.get(i).equals(userId)) {
+                    mOfflineDoctorUids.remove(i);
+                    return;
+                }
+            }
+        }
+
+
         mDoctors.add(doctor);
         if (mAdapter != null) {
             int pos = mDoctors.indexOf(doctor);
@@ -53,20 +66,23 @@ public class DoctorListData {
     public synchronized void removeDoctor(String uid) {
         if (mDoctorUids.contains(uid)) {
             removeUid(uid);
+            return;
+        }
+        int pos = -1;
+        for (int i = 0; i < mDoctors.size(); i++) {
+            if (mDoctors.get(i).getUser_id().equals(uid)) {
+                pos = i;
+                break;
+            }
+        }
+
+        if (pos != -1) {
+            mDoctors.remove(pos);
+            if (mAdapter != null) {
+                mAdapter.notifyItemRemoved(pos);
+            }
         } else {
-            int pos = -1;
-            for (int i = 0; i < mDoctors.size(); i++) {
-                if (mDoctors.get(i).getUser_id().equals(uid)) {
-                    pos = i;
-                    break;
-                }
-            }
-            if (pos != -1) {
-                mDoctors.remove(pos);
-                if (mAdapter != null) {
-                    mAdapter.notifyItemRemoved(pos);
-                }
-            }
+            mOfflineDoctorUids.add(uid);
         }
 
     }
