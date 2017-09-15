@@ -12,7 +12,9 @@ import android.view.ViewGroup;
 import com.scwang.smartrefresh.layout.SmartRefreshLayout;
 import com.scwang.smartrefresh.layout.api.RefreshLayout;
 import com.scwang.smartrefresh.layout.footer.ClassicsFooter;
+import com.scwang.smartrefresh.layout.header.ClassicsHeader;
 import com.scwang.smartrefresh.layout.listener.OnLoadmoreListener;
+import com.scwang.smartrefresh.layout.listener.OnRefreshLoadmoreListener;
 import com.zd.wilddogdemo.R;
 import com.zd.wilddogdemo.adapter.ConversationHistoryList;
 import com.zd.wilddogdemo.adapter.ConversationHistoryListAdapter;
@@ -72,9 +74,10 @@ public class ConversationHistoryFragment extends BaseFragment {
         mConversationHistoryContainer.setAdapter(adapter);
 
         mRefreshLayout.setRefreshFooter(new ClassicsFooter(getContext()));
-        mRefreshLayout.setEnableRefresh(false);
+        mRefreshLayout.setRefreshHeader(new ClassicsHeader(getContext()));
+        mRefreshLayout.setEnableRefresh(true);
         mRefreshLayout.setEnableLoadmore(true);
-        mRefreshLayout.setOnLoadmoreListener(new OnLoadmoreListener() {
+        mRefreshLayout.setOnRefreshLoadmoreListener(new OnRefreshLoadmoreListener() {
             @Override
             public void onLoadmore(RefreshLayout refreshlayout) {
                 Net.instance().getVideoCallInfoList(mUser.getToken(), mUser.getUser_id(),
@@ -94,8 +97,28 @@ public class ConversationHistoryFragment extends BaseFragment {
                             }
                         }, ConversationHistoryFragment.class.getSimpleName());
             }
+
+            @Override
+            public void onRefresh(RefreshLayout refreshlayout) {
+                Net.instance().getVideoCallInfoList(mUser.getToken(), mUser.getUser_id(),
+                        mHistoryList.getStart(), ConversationHistoryList.COUNT, new Net.OnNext<Result<List<VideoCallInfo>>>() {
+                            @Override
+                            public void onNext(@NonNull Result<List<VideoCallInfo>> result) {
+                                if (result.getCode() == 100) {
+                                    List<VideoCallInfo> infos = result.getData();
+                                    mHistoryList.addCallInfos(infos);
+                                }
+                                mRefreshLayout.finishRefresh();
+                            }
+                        }, new Net.OnError() {
+                            @Override
+                            public void onError(@NonNull Throwable e) {
+                                mRefreshLayout.finishRefresh();
+                            }
+                        }, ConversationHistoryFragment.class.getSimpleName());
+            }
         });
-        mRefreshLayout.autoLoadmore();
+        mRefreshLayout.autoRefresh();
     }
 
     @Override

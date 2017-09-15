@@ -23,7 +23,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
-            android:text="20/"/>
+            android:text="20元/分钟"/>
     </FrameLayout>
 
     <com.zd.wilddogdemo.ui.View.ResizableImageView

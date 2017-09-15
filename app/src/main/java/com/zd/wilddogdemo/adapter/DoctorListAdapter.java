@@ -134,7 +134,7 @@ public class DoctorListAdapter extends RecyclerView.Adapter<DoctorListAdapter.Us
                     .into(mAdIv);
 //            Util.setImageView(mContext, mAdIv, NetServiceConfig.AD_BASE_URL + mDoctor.getAd_url(), R.drawable.banner, false);
             mNickNameTv.setText(mDoctor.getNick_name());
-            mPriceTv.setText(String.format("%s元/次", mDoctor.getVideo_price()));
+            mPriceTv.setText(String.format("%s元/分钟", mDoctor.getVideo_price()));
         }
 
     }

@@ -55,11 +55,11 @@ public class ConversationHistoryList {
         if (info == null || info.size() == 0) {
             return;
         }
+        start += info.size();
         int start = mData.size();
         mData.addAll(info);
         if (mAdapter != null) {
             mAdapter.notifyItemRangeInserted(start, info.size());
         }
-        start += info.size();
     }
 }
