@@ -46,7 +46,7 @@ public class DoctorListData {
             return;
         }
         if (mOfflineDoctorUids.size() != 0) {
-            String userId = doctor.getUser_id();
+            String userId = doctor.getDoc_id();
             for (int i = 0; i < mOfflineDoctorUids.size(); i++) {
                 if (mOfflineDoctorUids.get(i).equals(userId)) {
                     mOfflineDoctorUids.remove(i);
@@ -70,7 +70,7 @@ public class DoctorListData {
         }
         int pos = -1;
         for (int i = 0; i < mDoctors.size(); i++) {
-            if (mDoctors.get(i).getUser_id().equals(uid)) {
+            if (mDoctors.get(i).getDoc_id().equals(uid)) {
                 pos = i;
                 break;
             }
@@ -92,7 +92,7 @@ public class DoctorListData {
             return;
         }
         for (int i = 0; i < mDoctors.size(); i++) {
-            if (mDoctors.get(i).getUser_id().equals(doctor.getUser_id())) {
+            if (mDoctors.get(i).getDoc_id().equals(doctor.getDoc_id())) {
                 mDoctors.get(i).update(doctor);
                 if (mAdapter != null) {
                     mAdapter.notifyItemChanged(i);

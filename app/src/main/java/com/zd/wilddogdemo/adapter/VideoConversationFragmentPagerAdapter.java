@@ -5,13 +5,11 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 
 import com.zd.wilddogdemo.ui.user.fragments.AboutMeFragment;
-import com.zd.wilddogdemo.ui.user.fragments.FollowedDoctorsFragment;
+import com.zd.wilddogdemo.ui.user.fragments.ConversationHistoryFragment;
 import com.zd.wilddogdemo.ui.user.fragments.OnlineDoctorListFragment;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static android.R.attr.id;
 
 /**
  * Created by dongjijin on 2017/9/6 0006.
@@ -23,7 +21,7 @@ public class VideoConversationFragmentPagerAdapter extends FragmentPagerAdapter 
         super(fm);
         mFragments = new ArrayList<>(3);
         mFragments.add(new OnlineDoctorListFragment());
-        mFragments.add(new FollowedDoctorsFragment());
+        mFragments.add(new ConversationHistoryFragment());
         mFragments.add(new AboutMeFragment());
     }
 

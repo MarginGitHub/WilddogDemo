@@ -9,7 +9,7 @@
     <item
         android:id="@+id/follow_doctors"
         android:icon="@drawable/ic_dashboard_black_24dp"
-        android:title="@string/follow_doctors"/>
+        android:title="@string/conversation_history"/>
 
     <item
         android:id="@+id/about_me"

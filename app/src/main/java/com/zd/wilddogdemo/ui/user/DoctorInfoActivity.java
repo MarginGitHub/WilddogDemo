@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -13,7 +14,10 @@ import android.widget.Toast;
 import com.zd.wilddogdemo.R;
 import com.zd.wilddogdemo.beans.DialInfo;
 import com.zd.wilddogdemo.beans.Doctor;
+import com.zd.wilddogdemo.beans.Result;
+import com.zd.wilddogdemo.net.Net;
 import com.zd.wilddogdemo.net.NetServiceConfig;
+import com.zd.wilddogdemo.storage.memory.ObjectProvider;
 import com.zd.wilddogdemo.ui.BaseActivity;
 import com.zd.wilddogdemo.utils.GlideApp;
 import com.zd.wilddogdemo.utils.Util;
@@ -21,9 +25,11 @@ import com.zd.wilddogdemo.utils.Util;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import io.reactivex.annotations.NonNull;
 
 public class DoctorInfoActivity extends BaseActivity {
 
+    private static final int DIAL_REQUEST = 100;
     @BindView(R.id.head_iv)
     ImageView mHeadIv;
     @BindView(R.id.nick_name)
@@ -45,6 +51,33 @@ public class DoctorInfoActivity extends BaseActivity {
         initViews();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if ((requestCode == DIAL_REQUEST) && (resultCode == RESULT_OK)) {
+            Net.instance().getAmount(mUser.getToken(), mUser.getUser_id(), new Net.OnNext<Result<Double>>() {
+                @Override
+                public void onNext(@NonNull Result<Double> result) {
+                    if (result.getCode() == 100) {
+                        mUser.setAmount(result.getData());
+                        ObjectProvider.sharedInstance().set(mUser);
+                    }
+                }
+            }, new Net.OnError() {
+                @Override
+                public void onError(@NonNull Throwable e) {
+                    Log.d("getAmount", "onError: " + e);
+                }
+            }, DoctorInfoActivity.class.getSimpleName());
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Net.instance().removeRequest(DoctorInfoActivity.class.getSimpleName());
+    }
+
     protected void initViews() {
         Util.setAvatarView(getApplicationContext(), mHeadIv, NetServiceConfig.HEAD_IMAGE_BASE_URL);
         mNickName.setText(mDoctor.getNick_name());
@@ -62,16 +95,17 @@ public class DoctorInfoActivity extends BaseActivity {
         }
 
         final DialInfo info = new DialInfo(mDoctor);
-        info.setMaxConversationTime(amount);
+        int time = (int) (amount / Double.valueOf(mDoctor.getVideo_price()));
+        info.setMaxConversationTime(time);
         Dialog dialog = new AlertDialog.Builder(this)
-                .setMessage(String.format("您当前账户所剩余额%d元,预期可以进行%d分钟视频通话,是否进行拨号？", amount, amount))
+                .setMessage(String.format("您当前账户所剩余额%d元,预期可以进行%d分钟视频通话,是否进行拨号？", amount, time))
                 .setNegativeButton("取消", null)
                 .setPositiveButton("确定", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         Intent intent = new Intent(DoctorInfoActivity.this, DialActivity.class);
                         intent.putExtra("dial_info", info);
-                        startActivity(intent);
+                        startActivityForResult(intent, DIAL_REQUEST);
                     }
                 })
                 .create();

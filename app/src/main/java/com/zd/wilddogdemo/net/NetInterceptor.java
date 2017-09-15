@@ -1,6 +1,5 @@
 package com.zd.wilddogdemo.net;
 
-import android.util.Log;
 
 import java.io.IOException;
 

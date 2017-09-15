@@ -19,7 +19,7 @@ public class Doctor implements Serializable{
      * follow_count : 0
      */
 
-    private String user_id;
+    private String doc_id;
     private String nick_name;
     private String sex;
     private String ref_user_id;
@@ -31,12 +31,12 @@ public class Doctor implements Serializable{
     public Doctor() {
     }
 
-    public String getUser_id() {
-        return user_id;
+    public String getDoc_id() {
+        return doc_id;
     }
 
-    public void setUser_id(String user_id) {
-        this.user_id = user_id;
+    public void setDoc_id(String doc_id) {
+        this.doc_id = doc_id;
     }
 
     public String getNick_name() {
@@ -106,7 +106,7 @@ public class Doctor implements Serializable{
     }
 
     public Doctor cpoy(Doctor doctor) {
-        user_id = doctor.user_id;
+        doc_id = doctor.doc_id;
         nick_name = doctor.getNick_name();
         sex = doctor.getSex();
         ref_user_id = doctor.getRef_user_id();
@@ -120,7 +120,7 @@ public class Doctor implements Serializable{
     @Override
     public String toString() {
         return "Doctor{" +
-                "user_id='" + user_id + '\'' +
+                "doc_id='" + doc_id + '\'' +
                 ", nick_name='" + nick_name + '\'' +
                 ", sex='" + sex + '\'' +
                 ", ref_user_id='" + ref_user_id + '\'' +

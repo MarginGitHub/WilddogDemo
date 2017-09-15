@@ -37,6 +37,7 @@ import com.zd.wilddogdemo.beans.Result;
 import com.zd.wilddogdemo.net.Net;
 import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.storage.ObjectPreference;
+import com.zd.wilddogdemo.storage.memory.ObjectProvider;
 import com.zd.wilddogdemo.ui.LoginActivity;
 import com.zd.wilddogdemo.utils.Util;
 
@@ -107,7 +108,6 @@ public class AboutMeFragment extends BaseFragment {
     @Override
     public void onResume() {
         super.onResume();
-        initViews();
     }
 
 
@@ -142,8 +142,8 @@ public class AboutMeFragment extends BaseFragment {
             resolution += "480p";
         }
         mVideoResolution.setText(resolution);
-
         mBalanceAccount.setText(String.format("余额: %f元", mUser.getAmount()));
+
     }
 
 
@@ -173,13 +173,13 @@ public class AboutMeFragment extends BaseFragment {
 
     private void selectVideoResolution() {
         if (mListPopup == null) {
-            final String[] items = new String[] {
+            final String[] items = new String[]{
                     "360p",
                     "480p",
                     "720p",
                     "1080p"
             };
-            final LocalStreamOptions.Dimension[] resolutions = new LocalStreamOptions.Dimension[] {
+            final LocalStreamOptions.Dimension[] resolutions = new LocalStreamOptions.Dimension[]{
                     DIMENSION_360P,
                     LocalStreamOptions.Dimension.DIMENSION_480P,
                     LocalStreamOptions.Dimension.DIMENSION_720P,
@@ -284,7 +284,7 @@ public class AboutMeFragment extends BaseFragment {
 //                最后通知图库更新
                 getActivity().sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri));
                 UCrop.of(uri, Uri.fromFile(Util.getHeadImgFile("user_avatar_circle.jpg")))
-                        .withAspectRatio(1,1)
+                        .withAspectRatio(1, 1)
                         .withMaxResultSize(400, 400)
                         .start(getContext(), this);
                 break;
@@ -296,37 +296,43 @@ public class AboutMeFragment extends BaseFragment {
                 File imgFile = Util.getHeadImgFile("user_avatar_circle.jpg");
                 if (selectUri != null) {
                     UCrop.of(selectUri, Uri.fromFile(imgFile))
-                            .withAspectRatio(1,1)
+                            .withAspectRatio(1, 1)
                             .withMaxResultSize(400, 400)
                             .start(getContext(), this);
                 }
+                break;
             case UCrop.REQUEST_CROP:
                 if (resultCode == RESULT_OK) {
                     final Uri output = UCrop.getOutput(data);
-                    if (output != null && !TextUtils.isEmpty(output.getPath())) {
-                        Net.instance().uploadUserHeadImage(mUser.getToken(), mUser.getUser_id(), output.getPath(), new Net.OnNext<Result<String>>() {
-                                    @Override
-                                    public void onNext(@NonNull Result<String> result) {
-                                        if (result.getCode() == 100) {
+                    if (output == null || TextUtils.isEmpty(output.getPath())) {
+                        return;
+                    }
+                    final String path = Util.getHeadImgFile("user_avatar_circle.jpg").getAbsolutePath();
+                    Net.instance().uploadUserHeadImage(mUser.getToken(), mUser.getUser_id(), path, new Net.OnNext<Result<String>>() {
+                                @Override
+                                public void onNext(@NonNull Result<String> result) {
+                                    if (result.getCode() == 100) {
+                                        String url = result.getData();
 //                                            先更新头像
-                                            Util.setAvatarView(getContext(), mHeadIv, output);
+                                        Util.setAvatarView(getContext(), mHeadIv, NetServiceConfig.HEAD_IMAGE_BASE_URL + url);
 //                                            再更新用户信息
-                                            String url = result.getData();
-                                            mUser.setHead_img_url(url);
-                                            Util.saveUser(getContext(), mUser);
-                                            Login login = ObjectPreference.getObject(getContext(), Login.class);
+                                        mUser.setHead_img_url(url);
+                                        Util.saveUser(getContext(), mUser);
+                                        Login login = ObjectPreference.getObject(getContext(), Login.class);
+                                        if (login != null) {
                                             login.setAvatarUrl(url);
                                             ObjectPreference.saveObject(getContext(), login);
                                         }
                                     }
-                                },
-                                new Net.OnError() {
-                                    @Override
-                                    public void onError(@NonNull Throwable e) {
-                                        Log.d("uploadHead", "onError: " + e.toString());
-                                    }
-                                }, AboutMeFragment.class.getSimpleName());
-                    }
+                                }
+                            },
+                            new Net.OnError() {
+                                @Override
+                                public void onError(@NonNull Throwable e) {
+                                    Log.d("uploadHead", "onError: " + e.toString());
+                                }
+                            }, AboutMeFragment.class.getSimpleName());
+//                    }
 
                 } else if (resultCode == UCrop.RESULT_ERROR) {
 

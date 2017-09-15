@@ -11,6 +11,7 @@ import com.wilddog.wilddogcore.WilddogApp;
 import com.zd.wilddogdemo.beans.Doctor;
 import com.zd.wilddogdemo.beans.Result;
 import com.zd.wilddogdemo.beans.User;
+import com.zd.wilddogdemo.beans.VideoCallInfo;
 import com.zd.wilddogdemo.utils.Util;
 
 import org.reactivestreams.Publisher;
@@ -126,16 +127,14 @@ public class Net {
                       final OnError err, final String id) {
         String ts = String.valueOf(System.currentTimeMillis() / 1000);
         String apiKey = "test";
-        int flag = 1;
 
         HashMap<String, String> params = new HashMap<>();
         params.put("ts", ts);
         params.put("apiKey", apiKey);
         params.put("mobile", mobile);
         params.put("password", password);
-        params.put("flag", String.valueOf(flag));
         String sign = Util.sign(params);
-        mNetService.login(ts, apiKey, sign, mobile, password, flag)
+        mNetService.login(ts, apiKey, sign, mobile, password)
                 .flatMap(new Function<Result<User>, ObservableSource<User>>() {
                     @Override
                     public ObservableSource<User> apply(@NonNull final Result<User> userResult) throws Exception {
@@ -349,6 +348,79 @@ public class Net {
                     @Override
                     public void onError(@NonNull Throwable e) {
                         err.onError(e);
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+    }
+
+    public void getAmount(String token, String userId, final OnNext<Result<Double>> onNext, final OnError onError, final String id) {
+        HashMap<String, String> params = new HashMap<>();
+        String ts = String.valueOf(System.currentTimeMillis() / 1000);
+        String apiKey = "test";
+        params.put("ts", ts);
+        params.put("apiKey", apiKey);
+        params.put("token", token);
+        params.put("userId", userId);
+        String sign = Util.sign(params);
+        mNetService.getAmount(ts, apiKey, sign, userId)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<Result<Double>>() {
+                    @Override
+                    public void onSubscribe(@NonNull Disposable d) {
+                        addRequest(id, d);
+                    }
+
+                    @Override
+                    public void onNext(@NonNull Result<Double> doubleResult) {
+                        onNext.onNext(doubleResult);
+                    }
+
+                    @Override
+                    public void onError(@NonNull Throwable e) {
+                        onError.onError(e);
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+    }
+
+    public void getVideoCallInfoList(String token, String userId, int start, int count,
+                                     final OnNext<Result<List<VideoCallInfo>>> onNext, final OnError onError, final String id) {
+        HashMap<String, String> params = new HashMap<>();
+        String ts = String.valueOf(System.currentTimeMillis() / 1000);
+        String apiKey = "test";
+        params.put("ts", ts);
+        params.put("apiKey", apiKey);
+        params.put("token", token);
+        params.put("userId", userId);
+        params.put("start", String.valueOf(start));
+        params.put("count", String.valueOf(count));
+        String sign = Util.sign(params);
+        mNetService.getVideoCallInfoList(ts, apiKey, sign, userId, start, count)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<Result<List<VideoCallInfo>>>() {
+                    @Override
+                    public void onSubscribe(@NonNull Disposable d) {
+                        addRequest(id, d);
+                    }
+
+                    @Override
+                    public void onNext(@NonNull Result<List<VideoCallInfo>> listResult) {
+                        onNext.onNext(listResult);
+                    }
+
+                    @Override
+                    public void onError(@NonNull Throwable e) {
+                        onError.onError(e);
                     }
 
                     @Override

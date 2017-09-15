@@ -151,7 +151,7 @@ public class DialService extends Service implements Conversation.Listener {
 
     private void callPeer(DialInfo info) {
         createLocalStream();
-        mDoctorUid = info.getDoctor().getUser_id();
+        mDoctorUid = info.getDoctor().getDoc_id();
         mMaxConversationTime = info.getMaxConversationTime();
         HashMap<String, String> data = new HashMap<>();
         data.put("nickname", mUser.getNick_name());

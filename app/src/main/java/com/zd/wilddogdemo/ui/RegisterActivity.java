@@ -48,10 +48,6 @@ public class RegisterActivity extends AppCompatActivity {
     AutoCompleteTextView mPassword2;
     @BindView(R.id.referee)
     AutoCompleteTextView mReferee;
-    @BindView(R.id.register_layout)
-    LinearLayout mRegisterLayout;
-    @BindView(R.id.login_form)
-    ScrollView mLoginForm;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

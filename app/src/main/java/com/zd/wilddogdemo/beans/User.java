@@ -34,7 +34,6 @@ public class User implements Serializable{
     private int last_login_time;
     private String create_time;
     private String token;
-    private String agora_token;
     private String wilddog_token;
     private Double amount;
 
@@ -119,14 +118,6 @@ public class User implements Serializable{
 
     public void setToken(String token) {
         this.token = token;
-    }
-
-    public String getAgora_token() {
-        return agora_token;
-    }
-
-    public void setAgora_token(String agora_token) {
-        this.agora_token = agora_token;
     }
 
     public String getWilddog_token() {

@@ -68,14 +68,17 @@ public class DialActivity extends BaseActivity implements ServiceConnection {
                     break;
                 case ConversationCons.REJECTED:
                     Toast.makeText(DialActivity.this, "ConversationCons.REJECTED", Toast.LENGTH_SHORT).show();
+                    setResult(0);
                     finish();
                     break;
                 case ConversationCons.BUSY:
                     Toast.makeText(DialActivity.this, "ConversationCons.BUSY", Toast.LENGTH_SHORT).show();
+                    setResult(0);
                     finish();
                     break;
                 case ConversationCons.TIMEOUT:
                     Toast.makeText(DialActivity.this, "ConversationCons.TIMEOUT", Toast.LENGTH_SHORT).show();
+                    setResult(0);
                     finish();
                     break;
                 case ConversationCons.HANG_UP:
@@ -87,11 +90,13 @@ public class DialActivity extends BaseActivity implements ServiceConnection {
                                 .setPositiveButton("知道了", new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialogInterface, int i) {
+                                        setResult(RESULT_OK);
                                         finish();
                                     }
                                 })
                                 .show();
                     } else {
+                        setResult(RESULT_OK);
                         finish();
                     }
                 default:
@@ -191,9 +196,12 @@ public class DialActivity extends BaseActivity implements ServiceConnection {
             case R.id.hung_up:
                 resetVideoViews();
                 closeConversation();
+                setResult(RESULT_OK);
+                finish();
                 break;
             case R.id.close:
                 sendMessage(ConversationCons.CLOSE, null, null);
+                setResult(0);
                 finish();
                 break;
         }

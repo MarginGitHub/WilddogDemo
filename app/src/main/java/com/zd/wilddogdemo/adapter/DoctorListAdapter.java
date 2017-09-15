@@ -81,7 +81,7 @@ public class DoctorListAdapter extends RecyclerView.Adapter<DoctorListAdapter.Us
         if (mData.size() != 0) {
             for (int i = 0; i < mData.size(); i++) {
                 Doctor item = mData.get(i);
-                if (item.getUser_id() == doctor.getUser_id()) {
+                if (item.getDoc_id() == doctor.getDoc_id()) {
                     item.update(doctor);
                     notifyItemChanged(i);
                 }
@@ -94,7 +94,7 @@ public class DoctorListAdapter extends RecyclerView.Adapter<DoctorListAdapter.Us
         if (mData.size() != 0) {
             for (int i = 0; i < mData.size(); i++) {
                 Doctor item = mData.get(i);
-                if (item.getUser_id().equals(uid)) {
+                if (item.getDoc_id().equals(uid)) {
                     mData.remove(i);
                     notifyItemRemoved(i);
                 }
