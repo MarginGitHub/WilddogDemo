@@ -11,8 +11,8 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -24,6 +24,7 @@ import com.wilddog.video.WilddogVideoView;
 import com.zd.wilddogdemo.R;
 import com.zd.wilddogdemo.beans.DialInfo;
 import com.zd.wilddogdemo.cons.ConversationCons;
+import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.service.DialService;
 import com.zd.wilddogdemo.ui.BaseActivity;
 import com.zd.wilddogdemo.utils.GlideApp;
@@ -48,7 +49,7 @@ public class DialActivity extends BaseActivity implements ServiceConnection {
     @BindView(R.id.doctor_nick_name)
     TextView mDoctorNickName;
     @BindView(R.id.dial_layout)
-    FrameLayout mDialLayout;
+    ConstraintLayout mDialLayout;
 
     private boolean onCall;
     private Messenger mServerMessenger;
@@ -82,7 +83,7 @@ public class DialActivity extends BaseActivity implements ServiceConnection {
                     finish();
                     break;
                 case ConversationCons.HANG_UP:
-                    resetVideoViews();
+//                    resetVideoViews();
                     onCall = false;
                     if (message.arg1 == ConversationCons.BALANCE_NOT_ENOUGH) {
                         new AlertDialog.Builder(DialActivity.this)
@@ -113,7 +114,7 @@ public class DialActivity extends BaseActivity implements ServiceConnection {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dial);
         ButterKnife.bind(this);
-        mDialInfo = (DialInfo)getIntent().getSerializableExtra("dial_info");
+        mDialInfo = (DialInfo) getIntent().getSerializableExtra("dial_info");
         bindVideoService();
         initViews();
     }
@@ -128,6 +129,12 @@ public class DialActivity extends BaseActivity implements ServiceConnection {
         super.onDestroy();
     }
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        sendMessage(ConversationCons.CLOSE, null, mServerMessenger);
+    }
+
     private void bindVideoService() {
         Intent intent = new Intent(this, DialService.class);
         bindService(intent, this, Service.BIND_AUTO_CREATE);
@@ -138,10 +145,10 @@ public class DialActivity extends BaseActivity implements ServiceConnection {
     }
 
     protected void initViews() {
-        String avatarUrl = mDialInfo.getDoctor().getAd_url();
-        if (!TextUtils.isEmpty(avatarUrl)) {
+        String headImgUrl = mDialInfo.getDoctor().getHead_img_url();
+        if (!TextUtils.isEmpty(headImgUrl)) {
             GlideApp.with(this)
-                    .load(avatarUrl)
+                    .load(NetServiceConfig.HEAD_IMAGE_BASE_URL + headImgUrl)
                     .placeholder(R.drawable.head)
                     .circleCrop()
                     .into(mDoctorHeadIv);
@@ -176,7 +183,6 @@ public class DialActivity extends BaseActivity implements ServiceConnection {
     }
 
 
-
     @Override
     public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
         mServerMessenger = new Messenger(iBinder);
@@ -194,7 +200,7 @@ public class DialActivity extends BaseActivity implements ServiceConnection {
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.hung_up:
-                resetVideoViews();
+//                resetVideoViews();
                 closeConversation();
                 setResult(RESULT_OK);
                 finish();

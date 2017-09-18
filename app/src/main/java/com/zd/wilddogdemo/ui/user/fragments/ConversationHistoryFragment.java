@@ -86,7 +86,7 @@ public class ConversationHistoryFragment extends BaseFragment {
                             public void onNext(@NonNull Result<List<VideoCallInfo>> result) {
                                 if (result.getCode() == 100) {
                                     List<VideoCallInfo> infos = result.getData();
-                                    mHistoryList.addCallInfos(infos);
+                                    mHistoryList.append(infos);
                                 }
                                 mRefreshLayout.finishLoadmore();
                             }
@@ -101,12 +101,12 @@ public class ConversationHistoryFragment extends BaseFragment {
             @Override
             public void onRefresh(RefreshLayout refreshlayout) {
                 Net.instance().getVideoCallInfoList(mUser.getToken(), mUser.getUser_id(),
-                        mHistoryList.getStart(), ConversationHistoryList.COUNT, new Net.OnNext<Result<List<VideoCallInfo>>>() {
+                        0, 10, new Net.OnNext<Result<List<VideoCallInfo>>>() {
                             @Override
                             public void onNext(@NonNull Result<List<VideoCallInfo>> result) {
                                 if (result.getCode() == 100) {
                                     List<VideoCallInfo> infos = result.getData();
-                                    mHistoryList.addCallInfos(infos);
+                                    mHistoryList.update(infos);
                                 }
                                 mRefreshLayout.finishRefresh();
                             }

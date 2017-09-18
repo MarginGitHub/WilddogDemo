@@ -27,6 +27,7 @@ public class Doctor implements Serializable{
     private String video_price;
     private String video_count;
     private String follow_count;
+    private String head_img_url;
 
     public Doctor() {
     }
@@ -93,6 +94,14 @@ public class Doctor implements Serializable{
 
     public void setFollow_count(String follow_count) {
         this.follow_count = follow_count;
+    }
+
+    public String getHead_img_url() {
+        return head_img_url;
+    }
+
+    public void setHead_img_url(String head_img_url) {
+        this.head_img_url = head_img_url;
     }
 
     public void update(Doctor doctor) {

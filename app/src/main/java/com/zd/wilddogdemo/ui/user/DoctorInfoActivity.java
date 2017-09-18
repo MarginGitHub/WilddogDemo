@@ -5,7 +5,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -19,7 +19,6 @@ import com.zd.wilddogdemo.net.Net;
 import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.storage.memory.ObjectProvider;
 import com.zd.wilddogdemo.ui.BaseActivity;
-import com.zd.wilddogdemo.utils.GlideApp;
 import com.zd.wilddogdemo.utils.Util;
 
 import butterknife.BindView;
@@ -79,7 +78,10 @@ public class DoctorInfoActivity extends BaseActivity {
     }
 
     protected void initViews() {
-        Util.setAvatarView(getApplicationContext(), mHeadIv, NetServiceConfig.HEAD_IMAGE_BASE_URL);
+        String headImgUrl = mDoctor.getHead_img_url();
+        if (!TextUtils.isEmpty(headImgUrl)) {
+            Util.setAvatarView(getApplicationContext(), mHeadIv, NetServiceConfig.HEAD_IMAGE_BASE_URL + headImgUrl);
+        }
         mNickName.setText(mDoctor.getNick_name());
         mVideoPrice.setText(mDoctor.getVideo_price());
         mVideoCount.setText(mDoctor.getVideo_count());

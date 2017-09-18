@@ -13,9 +13,7 @@ import com.zd.wilddogdemo.R;
 import com.zd.wilddogdemo.beans.Doctor;
 import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.utils.GlideApp;
-import com.zd.wilddogdemo.utils.Util;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -55,53 +53,6 @@ public class DoctorListAdapter extends RecyclerView.Adapter<DoctorListAdapter.Us
         return mData.size();
     }
 
-    public boolean addItem(Doctor doctor) {
-        if (doctor == null) {
-            return false;
-        }
-        boolean ret = mData.add(doctor);
-        notifyItemInserted(mData.size() - 1);
-        return ret;
-    }
-
-    public boolean addItems(List<Doctor> doctors) {
-        if (doctors == null || doctors.size() == 0) {
-            return false;
-        }
-        int start = mData.size();
-        boolean ret = mData.addAll(doctors);
-        notifyItemRangeInserted(start, doctors.size());
-        return ret;
-    }
-
-    public boolean updateItem(Doctor doctor) {
-        if (doctor == null) {
-            return false;
-        }
-        if (mData.size() != 0) {
-            for (int i = 0; i < mData.size(); i++) {
-                Doctor item = mData.get(i);
-                if (item.getDoc_id() == doctor.getDoc_id()) {
-                    item.update(doctor);
-                    notifyItemChanged(i);
-                }
-            }
-        }
-        return true;
-    }
-
-    public boolean removeItem(String uid) {
-        if (mData.size() != 0) {
-            for (int i = 0; i < mData.size(); i++) {
-                Doctor item = mData.get(i);
-                if (item.getDoc_id().equals(uid)) {
-                    mData.remove(i);
-                    notifyItemRemoved(i);
-                }
-            }
-        }
-        return true;
-    }
 
     class UserListViewHolder extends RecyclerView.ViewHolder {
         private TextView mNickNameTv;

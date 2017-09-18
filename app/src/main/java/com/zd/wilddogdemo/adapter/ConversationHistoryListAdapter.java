@@ -3,7 +3,6 @@ package com.zd.wilddogdemo.adapter;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,16 +10,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.zd.wilddogdemo.R;
-import com.zd.wilddogdemo.beans.Doctor;
 import com.zd.wilddogdemo.beans.VideoCallInfo;
 import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.utils.GlideApp;
-import com.zd.wilddogdemo.utils.Util;
 
 import java.text.SimpleDateFormat;
 import java.util.List;
-
-import static android.icu.lang.UCharacter.GraphemeClusterBreak.L;
 
 /**
  * Created by dongjijin on 2017/8/30 0030.
@@ -60,7 +55,7 @@ public class ConversationHistoryListAdapter extends RecyclerView.Adapter<Convers
         private final TextView mConversationTime;
         private final Context mContext;
         private final TextView mConversationStartTime;
-        private final SimpleDateFormat dataFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        private final SimpleDateFormat dataFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
 
         public ConversationHistoryViewHolder(View itemView, Context context) {
             super(itemView);
@@ -78,8 +73,23 @@ public class ConversationHistoryListAdapter extends RecyclerView.Adapter<Convers
                     .circleCrop()
                     .into(mAvatar);
             mNickName.setText(info.getNick_name());
-            mConversationTime.setText(String.format("通话时长:\t%d秒", info.getDuration()));
-            String date = dataFormat.format(info.getStart() * 1000);
+            long duration = info.getDuration();
+            if (duration < 60) {
+                mConversationTime.setText(String.format("通话时长:\t%d秒", duration));
+            } else {
+                mConversationTime.setText(String.format("通话时长:\t%d分%d秒", duration / 60, duration % 60));
+            }
+
+            long start = info.getStart();
+            duration = System.currentTimeMillis() / 1000 - start;
+            String date;
+            if (duration < 60) {
+                date = "刚刚";
+            } else if (duration > 60 && duration < 3600 ) {
+                date = String.format("%d分钟前", duration / 60);
+            } else {
+                date = dataFormat.format(start * 1000);
+            }
             mConversationStartTime.setText(date);
         }
     }

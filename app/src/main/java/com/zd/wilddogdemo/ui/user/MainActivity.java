@@ -119,7 +119,7 @@ public class MainActivity extends BaseActivity implements DoctorListAdapter.ICal
     public void onChildAdded(DataSnapshot dataSnapshot, String s) {
         if (dataSnapshot != null) {
             String uid = dataSnapshot.getKey();
-            if (mDoctorListData.getDoctorCount() < 10) {
+            if (mDoctorListData.getDoctorCount() < 5) {
                 Net.instance().getDoctorInfo(mUser.getUser_id(), uid, mUser.getToken(), new Net.OnNext<Result<Doctor>>() {
                             @Override
                             public void onNext(@io.reactivex.annotations.NonNull Result<Doctor> result) {

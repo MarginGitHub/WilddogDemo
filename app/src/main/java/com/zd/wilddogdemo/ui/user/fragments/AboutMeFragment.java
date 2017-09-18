@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
-import android.support.v7.app.AlertDialog;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -26,7 +25,6 @@ import com.qmuiteam.qmui.widget.dialog.QMUIDialog;
 import com.qmuiteam.qmui.widget.popup.QMUIListPopup;
 import com.qmuiteam.qmui.widget.popup.QMUIPopup;
 import com.wilddog.client.WilddogSync;
-import com.wilddog.video.LocalStream;
 import com.wilddog.video.LocalStreamOptions;
 import com.wilddog.video.WilddogVideo;
 import com.wilddog.wilddogauth.WilddogAuth;
@@ -37,7 +35,6 @@ import com.zd.wilddogdemo.beans.Result;
 import com.zd.wilddogdemo.net.Net;
 import com.zd.wilddogdemo.net.NetServiceConfig;
 import com.zd.wilddogdemo.storage.ObjectPreference;
-import com.zd.wilddogdemo.storage.memory.ObjectProvider;
 import com.zd.wilddogdemo.ui.LoginActivity;
 import com.zd.wilddogdemo.utils.Util;
 
@@ -147,26 +144,17 @@ public class AboutMeFragment extends BaseFragment {
     }
 
 
-    @OnClick({R.id.conversation_record, R.id.video_resolution, R.id.logout_button, R.id.head_iv})
+    @OnClick({ R.id.video_resolution, R.id.logout_button, R.id.head_iv})
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.head_iv:
                 changeHeadView();
-                break;
-            case R.id.conversation_record:
-                Toast.makeText(getContext(), "功能暂未实现", Toast.LENGTH_SHORT).show();
                 break;
             case R.id.video_resolution:
                 selectVideoResolution();
                 break;
             case R.id.logout_button:
                 logout();
-                break;
-            case R.id.camera:
-                openCamera();
-                break;
-            case R.id.album:
-                openAlbum();
                 break;
         }
     }

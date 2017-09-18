@@ -5,6 +5,7 @@ import com.zd.wilddogdemo.beans.VideoCallInfo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 /**
  * Created by dongjijin on 2017/8/30 0030.
@@ -13,7 +14,7 @@ import java.util.List;
 public class ConversationHistoryList {
     private List<VideoCallInfo> mData;
     private ConversationHistoryListAdapter mAdapter;
-    private int start = 0;
+    private int mStart = 0;
     public static final int COUNT = 10;
 
     public ConversationHistoryList(ConversationHistoryListAdapter adapter) {
@@ -37,7 +38,7 @@ public class ConversationHistoryList {
 
 
     public int getStart() {
-        return start;
+        return mStart;
     }
 
     public void addCallInfo(VideoCallInfo info) {
@@ -48,18 +49,29 @@ public class ConversationHistoryList {
         if (mAdapter != null) {
             mAdapter.notifyItemInserted(mData.size() - 1);
         }
-        start += 1;
+        mStart += 1;
     }
 
-    public void addCallInfos(List<VideoCallInfo> info) {
+    public void append(List<VideoCallInfo> info) {
         if (info == null || info.size() == 0) {
             return;
         }
-        start += info.size();
+        int size = info.size();
         int start = mData.size();
         mData.addAll(info);
+        mStart += size;
         if (mAdapter != null) {
-            mAdapter.notifyItemRangeInserted(start, info.size());
+            mAdapter.notifyItemRangeInserted(start, size);
+        }
+    }
+
+    public void update(List<VideoCallInfo> infos) {
+        mData.clear();
+        mData.addAll(infos);
+        int size = infos.size();
+        mStart = size;
+        if (mAdapter != null) {
+            mAdapter.notifyDataSetChanged();
         }
     }
 }

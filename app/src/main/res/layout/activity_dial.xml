@@ -1,4 +1,5 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             xmlns:app="http://schemas.android.com/apk/res-auto"
              xmlns:tools="http://schemas.android.com/tools"
              android:layout_width="match_parent"
              android:layout_height="match_parent"
@@ -10,59 +11,71 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone">
+
         <com.wilddog.video.WilddogVideoView
             android:id="@+id/remote_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
+
         <com.wilddog.video.WilddogVideoView
             android:id="@+id/local_view"
             android:layout_width="140dp"
             android:layout_height="190dp"
             android:layout_gravity="top|right"/>
+
         <ImageView
             android:id="@+id/hung_up"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/hung_up"
             android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="50dp"/>
+            android:layout_marginBottom="50dp"
+            android:src="@drawable/hung_up"/>
     </FrameLayout>
-    <FrameLayout
+
+    <android.support.constraint.ConstraintLayout
         android:id="@+id/dial_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-        <LinearLayout
+
+        <ImageView
+            android:id="@+id/doctor_head_iv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_gravity="top|center_horizontal"
-            android:gravity="center"
-            android:layout_marginTop="100dp">
-            <ImageView
-                android:id="@+id/doctor_head_iv"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/head"/>
-            <TextView
-                android:id="@+id/doctor_nick_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="董先生"/>
-        </LinearLayout>
+            android:layout_marginTop="60dp"
+            android:src="@drawable/head"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+
+        <TextView
+            android:id="@+id/doctor_nick_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="董先生"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/doctor_head_iv"/>
+
         <com.qmuiteam.qmui.widget.QMUILoadingView
             android:id="@+id/dialing"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginTop="30dp"
-            android:layout_gravity="center"/>
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+
         <ImageView
             android:id="@+id/close"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal|bottom"
             android:layout_marginBottom="50dp"
             android:clickable="true"
-            android:src="@drawable/hung_up"/>
-    </FrameLayout>
+            android:src="@drawable/hung_up"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"/>
+    </android.support.constraint.ConstraintLayout>
 </FrameLayout>
