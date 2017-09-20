@@ -51,4 +51,7 @@
     <string name="register_info">没有账号?请先注册</string>
     <string name="dial">拨号</string>
     <string name="conversation_history">通话历史</string>
+    <string name="code">验证码</string>
+    <string name="pwd1">密码</string>
+    <string name="pwd2">确认密码</string>
 </resources>
